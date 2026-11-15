@@ -2,12 +2,862 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=hub-domotique.html">
-<title>Hub Domotique</title>
-<style>body{background:#0b0e14;color:#e8edf7;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MonPronote — Espace Élève</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#131824; --panel2:#1a2130; --line:#242d40;
+    --txt:#e8edf7; --muted:#8b96ad; --acc:#1e88e5; --acc2:#00b8a9;
+    --ok:#2ecc71; --warn:#f39c12; --err:#e74c3c; --r:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',system-ui,sans-serif;}
+  body{background:var(--bg); color:var(--txt); min-height:100vh;}
+  a{color:var(--acc);}
+  /* ---------- Connexion ---------- */
+  #loginScreen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+    background:radial-gradient(1200px 600px at 70% -10%, #16324f55, transparent), var(--bg);
+  }
+  .login-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    padding:34px; width:100%; max-width:430px;
+  }
+  .login-card h1{font-size:1.5rem; margin-bottom:4px;}
+  .login-card .sub{color:var(--muted); font-size:.85rem; margin-bottom:22px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:.78rem; color:var(--muted); margin-bottom:5px;}
+  input[type=text], input[type=password], input[type=url], input[type=date], select{
+    width:100%; background:#0d1320; border:1px solid var(--line); color:var(--txt);
+    padding:11px 14px; border-radius:10px; font-size:.92rem;
+  }
+  input:focus, select:focus{outline:none; border-color:var(--acc);}
+  .check{display:flex; align-items:center; gap:8px; font-size:.8rem; color:var(--muted); margin:10px 0;}
+  button.act{
+    background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; border:none;
+    padding:12px 18px; border-radius:10px; cursor:pointer; font-size:.92rem; font-weight:600; width:100%; transition:.15s;
+  }
+  button.act:hover{filter:brightness(1.12);}
+  button.act:disabled{opacity:.45; cursor:not-allowed;}
+  button.ghost{
+    background:transparent; color:var(--txt); border:1px solid var(--line);
+    padding:10px 16px; border-radius:10px; cursor:pointer; font-size:.85rem;
+  }
+  button.ghost:hover{border-color:var(--acc);}
+  .msg{font-size:.8rem; margin-top:12px; min-height:18px;}
+  .msg.err{color:var(--err);} .msg.ok{color:var(--ok);}
+  /* ---------- App ---------- */
+  #app{display:none;}
+  header{
+    padding:14px 22px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    background:linear-gradient(135deg,#12253c,#0d1220); border-bottom:1px solid var(--line);
+    position:sticky; top:0; z-index:10;
+  }
+  header h1{font-size:1.15rem;}
+  header .sub{color:var(--muted); font-size:.78rem;}
+  .badge{font-size:.7rem; padding:3px 10px; border-radius:99px; border:1px solid var(--line); color:var(--muted);}
+  .badge.on{color:var(--ok); border-color:var(--ok);}
+  .badge.demo{color:var(--warn); border-color:var(--warn);}
+  nav{display:flex; gap:6px; padding:12px 22px 0; flex-wrap:wrap;}
+  nav button{
+    background:var(--panel); color:var(--muted); border:1px solid var(--line);
+    padding:9px 16px; border-radius:10px; cursor:pointer; font-size:.88rem; transition:.15s;
+  }
+  nav button:hover{color:var(--txt); border-color:var(--acc);}
+  nav button.active{background:var(--acc); color:#fff; border-color:var(--acc);}
+  main{padding:20px 22px 60px; max-width:1100px; margin:0 auto;}
+  section.tab{display:none;} section.tab.active{display:block;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:18px; margin-bottom:16px;}
+  .card h2{font-size:1rem; margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .note{color:var(--muted); font-size:.82rem; line-height:1.55;}
+  .kpi-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:16px;}
+  .kpi{background:var(--panel2); border:1px solid var(--line); border-radius:var(--r); padding:16px;}
+  .kpi b{display:block; font-size:1.6rem; color:var(--acc); margin-top:4px;}
+  .kpi span{color:var(--muted); font-size:.75rem;}
+  table{width:100%; border-collapse:collapse; font-size:.85rem;}
+  th,td{padding:9px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top;}
+  th{color:var(--muted); font-weight:600; font-size:.75rem; text-transform:uppercase; letter-spacing:.04em;}
+  .pill{font-size:.68rem; padding:2px 9px; border-radius:99px; background:#0d1320; border:1px solid var(--line); color:var(--muted);}
+  .pill.ok{color:var(--ok); border-color:var(--ok);}
+  .pill.warn{color:var(--warn); border-color:var(--warn);}
+  .pill.err{color:var(--err); border-color:var(--err);}
+  .grade-good{color:var(--ok); font-weight:700;}
+  .grade-bad{color:var(--err); font-weight:700;}
+  /* Emploi du temps */
+  .edt-day{margin-bottom:18px;}
+  .edt-day h3{font-size:.9rem; color:var(--acc); margin-bottom:8px;}
+  .course{
+    display:flex; gap:12px; align-items:center; background:var(--panel2); border:1px solid var(--line);
+    border-left:4px solid var(--acc); border-radius:10px; padding:10px 14px; margin-bottom:8px;
+  }
+  .course.canceled{border-left-color:var(--err); opacity:.6;}
+  .course .time{font-size:.78rem; color:var(--muted); min-width:100px;}
+  .course .subj{font-weight:700; font-size:.92rem;}
+  .course .meta{font-size:.76rem; color:var(--muted);}
+  .devoir{
+    background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:12px 14px; margin-bottom:10px;
+  }
+  .devoir .head{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap;}
+  .devoir .desc{font-size:.86rem; color:var(--txt); white-space:pre-wrap;}
+  .devoir.done{opacity:.55;}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .log{
+    background:#0a0e18; border:1px solid var(--line); border-radius:10px; padding:12px;
+    font-family:Consolas,monospace; font-size:.73rem; color:var(--muted);
+    max-height:200px; overflow-y:auto; white-space:pre-wrap; line-height:1.5;
+  }
+  footer{color:var(--muted); font-size:.72rem; text-align:center; padding:18px; line-height:1.6;}
+</style>
 </head>
 <body>
-<p>Redirection vers le <a href="hub-domotique.html" style="color:#4f8cff">Hub Domotique</a>…</p>
-<script>location.replace("hub-domotique.html");</script>
+
+<!-- ================= CONNEXION ================= -->
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>🎒 MonPronote</h1>
+    <div class="sub">Connecte-toi avec ton compte de lycée pour retrouver cours, devoirs, notes et moyennes.</div>
+    <div class="field">
+      <label>Adresse de ton Pronote (page élève)</label>
+      <input type="url" id="inUrl" placeholder="https://xxxxxxxv.index-education.net/pronote/eleve.html">
+    </div>
+    <div class="field">
+      <label>Identifiant</label>
+      <input type="text" id="inUser" placeholder="Ton identifiant ENT / Pronote" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Mot de passe</label>
+      <input type="password" id="inPass" placeholder="Ton mot de passe" autocomplete="current-password">
+    </div>
+    <div class="field">
+      <label>Type de connexion</label>
+      <select id="inMode">
+        <option value="direct">Direct (identifiant Pronote)</option>
+        <option value="cas">ENT / CAS (passerelle du lycée)</option>
+      </select>
+    </div>
+    <label class="check"><input type="checkbox" id="inSave"> Mémoriser mes identifiants sur cet appareil</label>
+    <button class="act" id="btnLogin">Se connecter</button>
+    <div class="row" style="margin-top:10px">
+      <button class="ghost" style="flex:1" id="btnDemo">👁 Mode démo (sans compte)</button>
+      <button class="ghost" style="flex:1" id="btnBridge">⬇ Pont local</button>
+    </div>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app">
+  <header>
+    <div style="font-size:1.5rem">🎒</div>
+    <div style="flex:1">
+      <h1 id="hdrName">Élève</h1>
+      <div class="sub" id="hdrSub">—</div>
+    </div>
+    <span class="badge" id="bridgeBadge">Pont : non connecté</span>
+    <span class="badge" id="demoBadge" style="display:none">MODE DÉMO</span>
+    <button class="ghost" id="btnLogout">Déconnexion</button>
+    <button class="ghost" id="btnRefresh">🔄 Actualiser</button>
+  </header>
+
+  <nav id="nav">
+    <button data-tab="home" class="active">🏠 Accueil</button>
+    <button data-tab="edt">📅 Cours</button>
+    <button data-tab="devoirs">📝 Devoirs</button>
+    <button data-tab="notes">📊 Notes</button>
+    <button data-tab="absences">🚫 Absences</button>
+    <button data-tab="bridge">🌉 Pont local</button>
+  </nav>
+
+  <main>
+    <!-- Accueil -->
+    <section class="tab active" id="tab-home">
+      <div class="kpi-row" id="homeKpi"></div>
+      <div class="card">
+        <h2>📅 Cours d'aujourd'hui</h2>
+        <div id="homeToday" class="note">Aucun cours aujourd'hui ou données non chargées.</div>
+      </div>
+      <div class="card">
+        <h2>📝 Devoirs pour demain</h2>
+        <div id="homeHomework" class="note">Aucun devoir pour demain.</div>
+      </div>
+      <div class="card">
+        <h2>🆕 Dernières notes</h2>
+        <div id="homeGrades" class="note">Aucune note.</div>
+      </div>
+    </section>
+
+    <!-- Emploi du temps -->
+    <section class="tab" id="tab-edt">
+      <div class="card">
+        <h2>📅 Emploi du temps
+          <span class="row" style="margin-left:auto">
+            <button class="ghost" id="edtPrev">◀ Semaine précédente</button>
+            <input type="date" id="edtDate" style="width:auto">
+            <button class="ghost" id="edtNext">Semaine suivante ▶</button>
+          </span>
+        </h2>
+        <div id="edtView" class="note">Chargement…</div>
+      </div>
+    </section>
+
+    <!-- Devoirs -->
+    <section class="tab" id="tab-devoirs">
+      <div class="card">
+        <h2>📝 Devoirs à venir <span class="pill" id="hwCount">0</span></h2>
+        <div class="note" style="margin-bottom:12px">Coche un devoir pour le marquer comme fait (sync via le pont).</div>
+        <div id="hwView">Chargement…</div>
+      </div>
+    </section>
+
+    <!-- Notes -->
+    <section class="tab" id="tab-notes">
+      <div class="kpi-row" id="notesKpi"></div>
+      <div class="card">
+        <h2>📊 Toutes les notes <span class="pill" id="grCount">0</span></h2>
+        <table id="grTable">
+          <thead><tr><th>Date</th><th>Matière</th><th>Note</th><th>Moy. classe</th><th>Coef</th><th>Commentaire</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Absences -->
+    <section class="tab" id="tab-absences">
+      <div class="card">
+        <h2>🚫 Absences &amp; retards</h2>
+        <div id="absView" class="note">Chargement…</div>
+      </div>
+    </section>
+
+    <!-- Pont -->
+    <section class="tab" id="tab-bridge">
+      <div class="card">
+        <h2>🌉 Pont local</h2>
+        <p class="note" style="margin-bottom:12px">
+          Le navigateur ne peut pas joindre Pronote directement (blocage CORS d'Index-Éducation).
+          Le pont est un petit serveur Python qui se connecte à ta place avec tes identifiants et renvoie les données à cette page.
+          1️⃣ Télécharge le pont — 2️⃣ <code>pip install pronotepy</code> puis <code>python pont.py</code> — 3️⃣ connecte-le ci-dessous.
+        </p>
+        <div class="row" style="margin-bottom:14px">
+          <input type="text" id="bridgeUrl" value="http://127.0.0.1:8766" style="min-width:230px">
+          <button class="ghost" id="bridgeConnectBtn">🔌 Connecter</button>
+          <button class="ghost" id="bridgeDlBtn">⬇ Télécharger pont.py</button>
+        </div>
+        <div class="log" id="bridgeLog">Pont non connecté.</div>
+      </div>
+      <div class="card">
+        <h2>🔐 Confidentialité</h2>
+        <p class="note">
+          Tes identifiants ne sortent jamais de ton appareil : ils vont uniquement du navigateur au pont local (127.0.0.1),
+          puis directement au serveur Pronote de ton lycée. Aucun serveur intermédiaire, aucun stockage en ligne.
+          Décoche « Mémoriser mes identifiants » si tu es sur un ordinateur partagé.
+        </p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>MonPronote — client non officiel pour Pronote (Index-Éducation). Données 100 % locales. Mode démo : données fictives.</footer>
+
+<script>
+"use strict";
+/* ================= État ================= */
+const LS = {
+  creds: "mp_creds_v1", bridge: "mp_bridge_v1", data: "mp_data_v1", hwDone: "mp_hwdone_v1"
+};
+let state = {
+  demo: false, bridgeOk: false, bridgeBase: "",
+  data: null, edtWeek: new Date().toISOString().slice(0,10)
+};
+const $ = s => document.querySelector(s);
+
+/* ================= Onglets ================= */
+document.querySelectorAll("#nav button").forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll("#nav button").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll("section.tab").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    $("#tab-"+b.dataset.tab).classList.add("active");
+  };
+});
+function switchTab(name){
+  document.querySelectorAll("#nav button").forEach(x=>x.classList.toggle("active", x.dataset.tab===name));
+  document.querySelectorAll("section.tab").forEach(x=>x.classList.toggle("active", x.id==="tab-"+name));
+}
+
+/* ================= Pont local ================= */
+try{ state.bridgeBase = localStorage.getItem(LS.bridge) || "http://127.0.0.1:8766"; }catch(e){}
+$("#bridgeUrl").value = state.bridgeBase;
+
+$("#bridgeConnectBtn").onclick = connectBridge;
+async function connectBridge(){
+  state.bridgeBase = $("#bridgeUrl").value.replace(/\/+$/,"");
+  localStorage.setItem(LS.bridge, state.bridgeBase);
+  $("#bridgeLog").textContent = "Connexion à " + state.bridgeBase + " …";
+  try{
+    const r = await fetch(state.bridgeBase + "/ping");
+    const j = await r.json();
+    state.bridgeOk = j.ok === true;
+    $("#bridgeLog").textContent =
+      "Pont connecté ✓ (v" + (j.version||"1") + ")\npronotepy : " + (j.pronotepy||"?") +
+      (j.session ? "\nSession Pronote : active (" + (j.session.eleve||"élève") + ")" : "\nSession Pronote : aucune — connecte-toi depuis l'écran de connexion.");
+    $("#bridgeBadge").textContent = "Pont : connecté";
+    $("#bridgeBadge").classList.add("on");
+  }catch(e){
+    state.bridgeOk = false;
+    $("#bridgeLog").textContent = "Échec : " + e.message + "\nLance « pip install pronotepy » puis « python pont.py », et réessaie.";
+    $("#bridgeBadge").textContent = "Pont : non connecté";
+    $("#bridgeBadge").classList.remove("on");
+  }
+}
+
+$("#bridgeDlBtn").onclick = ()=>{
+  const script = String.raw`#!/usr/bin/env python3
+# pont.py — pont local MonPronote
+# Installation : pip install pronotepy flask-cors  (ou: pip install pronotepy)
+# Lancement    : python pont.py   (port 8766)
+import json, threading
+from datetime import date, timedelta
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+PORT = 8766
+try:
+    import pronotepy
+    HAS_PRONOTEPY = True
+except ImportError:
+    HAS_PRONOTEPY = False
+
+client = None            # session pronotepy
+lock = threading.Lock()  # pronotepy n'est pas thread-safe
+
+def ent_factory(mode):
+    if mode != "cas" or not HAS_PRONOTEPY:
+        return None
+    try:
+        from pronotepy.ent import cas
+        return cas
+    except Exception:
+        return None
+
+def d2s(d): return d.isoformat() if hasattr(d, "isoformat") else str(d)
+
+def g(obj, key, default=None):
+    v = getattr(obj, key, None)
+    return default if v is None else v
+
+def collect_all():
+    with lock:
+        out = {}
+        eleve = getattr(client, "info", None)
+        out["eleve"] = {
+            "nom": g(eleve, "name", "Élève"),
+            "classe": g(getattr(client, "class_", None), "name", ""),
+            "etablissement": getattr(client, "periods", None) is not None and getattr(client, "student_class", None) and getattr(client.student_class, "name", "") or ""
+        }
+        try:
+            out["eleve"]["etablissement"] = getattr(client, "name", "") or ""
+        except Exception:
+            pass
+        period = getattr(client, "current_period", None)
+        # Moyennes
+        try:
+            out["moyenne_generale"] = str(g(period, "average", ""))
+            out["moyenne_classe"] = str(g(period, "class_average", ""))
+        except Exception:
+            out["moyenne_generale"] = out["moyenne_classe"] = ""
+        # Emploi du temps de la semaine
+        today = date.today()
+        monday = today - timedelta(days=today.weekday())
+        courses = []
+        for i in range(7):
+            day = monday + timedelta(days=i)
+            try:
+                for c in client.timetable(day):
+                    courses.append({
+                        "date": d2s(day),
+                        "start": d2s(g(c, "start", ""))[11:16] if d2s(g(c, "start", "")) else "",
+                        "end": d2s(g(c, "end", ""))[11:16] if d2s(g(c, "end", "")) else "",
+                        "matiere": g(getattr(c, "subject", None), "name", "—"),
+                        "prof": g(c, "teacher_name", "") or "",
+                        "salle": g(c, "room", "") or "",
+                        "annule": bool(g(c, "canceled", False)),
+                        "statut": g(c, "status", "") or ""
+                    })
+            except Exception:
+                pass
+        out["cours"] = courses
+        # Devoirs (15 jours)
+        devoirs = []
+        try:
+            for h in client.homework(monday, monday + timedelta(days=20)):
+                devoirs.append({
+                    "date": d2s(g(h, "date", "")),
+                    "matiere": g(getattr(h, "subject", None), "name", "—"),
+                    "description": g(h, "description", ""),
+                    "fait": bool(g(h, "done", False))
+                })
+        except Exception:
+            pass
+        out["devoirs"] = devoirs
+        # Notes de la période courante
+        notes = []
+        try:
+            for gr in period.grades:
+                notes.append({
+                    "date": d2s(g(gr, "date", "")),
+                    "matiere": g(getattr(gr, "subject", None), "name", "—"),
+                    "note": str(g(gr, "grade", "")),
+                    "sur": str(g(gr, "out_of", "")),
+                    "moyenne": str(g(gr, "average", "")),
+                    "coef": str(g(gr, "coefficient", "") or "1"),
+                    "commentaire": g(gr, "comment", "") or ""
+                })
+        except Exception:
+            pass
+        out["notes"] = notes
+        # Absences
+        absences = []
+        try:
+            for a in client.absences(period):
+                absences.append({
+                    "date": d2s(g(a, "from_date", g(a, "date", ""))),
+                    "heures": str(g(a, "hours", "") or ""),
+                    "motif": g(a, "reasons", "") and ", ".join(str(r) for r in a.reasons) or "",
+                    "justifiee": bool(g(a, "justified", False))
+                })
+        except Exception:
+            pass
+        out["absences"] = absences
+        return out
+
+class H(BaseHTTPRequestHandler):
+    def _json(self, obj, code=200):
+        b = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(b)
+    def log_message(self, *a): pass
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+    def do_GET(self):
+        if self.path == "/ping":
+            sess = None
+            if client is not None:
+                try: sess = {"eleve": g(getattr(client, "info", None), "name", "élève")}
+                except Exception: sess = None
+            self._json({"ok": True, "version": 2,
+                        "pronotepy": "installé" if HAS_PRONOTEPY else "ABSENT (pip install pronotepy)",
+                        "session": sess})
+        elif self.path == "/pronote/data":
+            if client is None:
+                return self._json({"ok": False, "error": "Aucune session. Connecte-toi d'abord."}, 400)
+            try:
+                self._json({"ok": True, **collect_all()})
+            except Exception as e:
+                self._json({"ok": False, "error": str(e)}, 500)
+        else:
+            self._json({"ok": False}, 404)
+    def do_POST(self):
+        n = int(self.headers.get("Content-Length", 0))
+        body = json.loads(self.rfile.read(n) or b"{}")
+        if self.path == "/pronote/login":
+            global client
+            if not HAS_PRONOTEPY:
+                return self._json({"ok": False, "error": "pronotepy non installé : pip install pronotepy"}, 500)
+            url = body.get("url", "").strip()
+            user = body.get("username", "")
+            pwd = body.get("password", "")
+            mode = body.get("mode", "direct")
+            if not url or not user:
+                return self._json({"ok": False, "error": "URL et identifiant requis"}, 400)
+            try:
+                with lock:
+                    ent = ent_factory(mode)
+                    kwargs = dict(pronote_url=url, username=user, password=pwd)
+                    if ent: kwargs["ent"] = ent
+                    c = pronotepy.Client(**kwargs)
+                    if not c.logged_in:
+                        return self._json({"ok": False, "error": "Identifiants refusés ou URL incorrecte"}, 401)
+                    client = c
+                name = g(getattr(c, "info", None), "name", "Élève")
+                self._json({"ok": True, "eleve": name})
+            except Exception as e:
+                self._json({"ok": False, "error": "Connexion impossible : " + str(e)}, 401)
+        elif self.path == "/pronote/homework_done":
+            if client is None:
+                return self._json({"ok": False, "error": "Aucune session"}, 400)
+            try:
+                with lock:
+                    target = date.fromisoformat(body.get("date"))
+                    for h in client.homework(target, target):
+                        if g(getattr(h, "subject", None), "name", "") == body.get("matiere"):
+                            h.done = bool(body.get("fait"))
+                    client.refresh()
+                self._json({"ok": True})
+            except Exception as e:
+                self._json({"ok": False, "error": str(e)}, 500)
+        else:
+            self._json({"ok": False}, 404)
+
+print(f"Pont MonPronote demarre sur http://127.0.0.1:{PORT}")
+HTTPServer(("127.0.0.1", PORT), H).serve_forever()
+`;
+  const blob = new Blob([script], {type: "text/x-python"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "pont.py";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  $("#bridgeLog").textContent = "pont.py téléchargé.\n1) pip install pronotepy\n2) python pont.py\n3) Connecte le pont, puis connecte-toi avec tes identifiants.";
+};
+
+/* ================= Connexion Pronote ================= */
+const saved = JSON.parse(localStorage.getItem(LS.creds) || "null");
+if(saved){
+  $("#inUrl").value = saved.url || "";
+  $("#inUser").value = saved.username || "";
+  $("#inPass").value = saved.password || "";
+  $("#inMode").value = saved.mode || "direct";
+  $("#inSave").checked = true;
+}
+
+function loginMsg(text, cls){ const m = $("#loginMsg"); m.textContent = text; m.className = "msg " + (cls||""); }
+
+$("#btnLogin").onclick = async ()=>{
+  const url = $("#inUrl").value.trim();
+  const username = $("#inUser").value.trim();
+  const password = $("#inPass").value;
+  const mode = $("#inMode").value;
+  if(!url || !username || !password){ loginMsg("Remplis l'adresse Pronote, l'identifiant et le mot de passe.", "err"); return; }
+  loginMsg("Connexion au pont local…");
+  if(!state.bridgeOk) await connectBridge();
+  if(!state.bridgeOk){ loginMsg("Le pont local n'est pas connecté. Onglet 🌉 : télécharge pont.py, lance-le, puis réessaie. (Sinon, essaie le mode démo.)", "err"); return; }
+  loginMsg("Connexion à Pronote…");
+  try{
+    const r = await fetch(state.bridgeBase + "/pronote/login", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({url, username, password, mode})
+    });
+    const j = await r.json();
+    if(!j.ok){ loginMsg("✗ " + (j.error || "Échec de connexion"), "err"); return; }
+    if($("#inSave").checked) localStorage.setItem(LS.creds, JSON.stringify({url, username, password, mode}));
+    else localStorage.removeItem(LS.creds);
+    enterApp({eleve: {nom: j.eleve || "Élève"}, demo: false});
+    await loadData();
+  }catch(e){ loginMsg("✗ " + e.message, "err"); }
+};
+
+$("#btnDemo").onclick = ()=>{
+  state.demo = true;
+  state.data = demoData();
+  enterApp(state.data);
+  renderAll();
+};
+
+$("#btnLogout").onclick = ()=>{
+  state.demo = false; state.data = null;
+  localStorage.removeItem(LS.data);
+  $("#app").style.display = "none";
+  $("#loginScreen").style.display = "flex";
+};
+
+$("#btnRefresh").onclick = async ()=>{
+  if(state.demo){ state.data = demoData(); renderAll(); return; }
+  await loadData();
+};
+
+function enterApp(d){
+  $("#loginScreen").style.display = "none";
+  $("#app").style.display = "block";
+  $("#demoBadge").style.display = d.demo ? "inline-block" : "none";
+  const e = d.eleve || {};
+  $("#hdrName").textContent = e.nom || "Élève";
+  $("#hdrSub").textContent = [e.classe, e.etablissement].filter(Boolean).join(" · ") || "—";
+}
+
+/* ================= Chargement des données ================= */
+async function loadData(){
+  if(!state.bridgeOk) await connectBridge();
+  if(!state.bridgeOk){ switchTab("bridge"); return; }
+  try{
+    const r = await fetch(state.bridgeBase + "/pronote/data");
+    const j = await r.json();
+    if(!j.ok){ $("#bridgeLog").textContent = "Erreur : " + (j.error||"?"); switchTab("bridge"); return; }
+    state.data = j;
+    localStorage.setItem(LS.data, JSON.stringify(j));
+    renderAll();
+  }catch(e){
+    $("#bridgeLog").textContent = "Erreur de chargement : " + e.message;
+    switchTab("bridge");
+  }
+}
+
+/* ================= Mode démo ================= */
+function demoData(){
+  const today = new Date();
+  const iso = d => d.toISOString().slice(0,10);
+  const addD = n => { const d = new Date(today); d.setDate(d.getDate()+n); return iso(d); };
+  const M = ["Mathématiques","Français","Histoire-Géographie","Anglais","Physique-Chimie","SVT","EPS","NSI"];
+  const P = ["M. Dupont","Mme Martin","M. Bernard","Mme Petit","M. Moreau","Mme Laurent"];
+  const S = ["B101","B102","C204","A12","Gymnase","Labo 2","Salle info"];
+  let seed = 42;
+  const rnd = () => (seed = (seed*9301+49297)%233280) / 233280;
+  const pick = a => a[Math.floor(rnd()*a.length)];
+  const courses = [];
+  for(let d=0; d<7; d++){
+    const day = addD(d-1);
+    if(new Date(day).getDay() === 0) continue;
+    let h = 8;
+    const n = 3 + Math.floor(rnd()*3);
+    for(let i=0; i<n; i++){
+      const dur = 1;
+      courses.push({
+        date: day,
+        start: String(h).padStart(2,"0") + ":00",
+        end: String(h+dur).padStart(2,"0") + ":00",
+        matiere: pick(M), prof: pick(P), salle: pick(S),
+        annule: rnd() < 0.05, statut: ""
+      });
+      h += dur + (rnd()<0.3 ? 1 : 0);
+      if(h >= 18) break;
+    }
+  }
+  const devoirs = [];
+  for(let d=0; d<12; d++){
+    const n = 1 + Math.floor(rnd()*3);
+    for(let i=0; i<n; i++){
+      devoirs.push({
+        date: addD(d), matiere: pick(M),
+        description: pick([
+          "Exercices 12 à 15 p. 84 + revoir le chapitre.",
+          "Lire le texte et répondre aux questions 1 à 5.",
+          "Préparer l'interrogation de fin de chapitre.",
+          "Rédiger le compte-rendu du TP.",
+          "Apprendre la liste de vocabulaire.",
+          "Finir le DM commencé en classe."
+        ]),
+        fait: rnd() < 0.35
+      });
+    }
+  }
+  const notes = [];
+  for(let i=0; i<14; i++){
+    const sur = pick([20,20,20,10,40]);
+    const note = Math.round((6 + rnd()*12) * 2) / 2;
+    notes.push({
+      date: addD(-Math.floor(rnd()*60)),
+      matiere: pick(M),
+      note: String(note).replace(".", ","),
+      sur: String(sur),
+      moyenne: String(Math.round((6 + rnd()*12) * 2) / 2).replace(".", ","),
+      coef: pick(["1","1","2","0.5"]),
+      commentaire: rnd() < 0.3 ? pick(["Bon travail.","Peut mieux faire.","En progrès.","Attention à la rédaction."]) : ""
+    });
+  }
+  const absences = [];
+  for(let i=0; i<3; i++){
+    absences.push({
+      date: addD(-Math.floor(rnd()*40)),
+      heures: pick(["1h","2h","0.5h"]),
+      motif: pick(["Maladie","Non justifiée","Rendez-vous médical"]),
+      justifiee: rnd() < 0.6
+    });
+  }
+  return {
+    demo: true,
+    eleve: {nom: "Camille Martin (démo)", classe: "Terminale G3", etablissement: "Lycée Exemple"},
+    moyenne_generale: "13,4", moyenne_classe: "11,8",
+    cours, devoirs, notes, absences
+  };
+}
+
+/* ================= Rendu ================= */
+const MOIS = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+const JOURS = ["dim.","lun.","mar.","mer.","jeu.","ven.","sam."];
+function fdate(iso){
+  if(!iso) return "—";
+  const d = new Date(iso + (iso.length === 10 ? "T12:00:00" : ""));
+  return JOURS[d.getDay()] + " " + d.getDate() + " " + MOIS[d.getMonth()];
+}
+function esc(s){ return String(s ?? "").replace(/[<>&"]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c])); }
+function toNum(s){ return parseFloat(String(s).replace(",", ".")); }
+function gradeClass(note, sur){
+  const n = toNum(note), o = toNum(sur) || 20;
+  if(isNaN(n)) return "";
+  return (n/o) >= 0.6 ? "grade-good" : (n/o) < 0.45 ? "grade-bad" : "";
+}
+
+function renderAll(){
+  if(!state.data) return;
+  renderHome(); renderEdt(); renderHw(); renderGrades(); renderAbs();
+}
+
+function renderHome(){
+  const d = state.data;
+  const today = new Date().toISOString().slice(0,10);
+  const notes = d.notes || [];
+  $("#homeKpi").innerHTML = `
+    <div class="kpi"><span>Moyenne générale</span><b>${esc(d.moyenne_generale || "—")}${d.moyenne_generale ? "<small>/20</small>" : ""}</b></div>
+    <div class="kpi"><span>Moyenne de classe</span><b>${esc(d.moyenne_classe || "—")}</b></div>
+    <div class="kpi"><span>Devoirs à faire</span><b>${(d.devoirs||[]).filter(x=>!x.fait).length}</b></div>
+    <div class="kpi"><span>Notes de la période</span><b>${notes.length}</b></div>`;
+  const todayCourses = (d.cours||[]).filter(c=>c.date === today).sort((a,b)=>a.start.localeCompare(b.start));
+  $("#homeToday").innerHTML = todayCourses.length
+    ? todayCourses.map(c=>courseHtml(c)).join("")
+    : "Aucun cours aujourd'hui. 🎉";
+  const demain = new Date(Date.now() + 864e5).toISOString().slice(0,10);
+  const hw = (d.devoirs||[]).filter(x=>x.date === demain);
+  $("#homeHomework").innerHTML = hw.length
+    ? hw.map(hwHtml).join("")
+    : "Aucun devoir pour demain.";
+  const recent = [...notes].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,5);
+  $("#homeGrades").innerHTML = recent.length
+    ? `<table><thead><tr><th>Date</th><th>Matière</th><th>Note</th><th>Moy. classe</th></tr></thead><tbody>${
+        recent.map(g=>`<tr><td>${fdate(g.date)}</td><td>${esc(g.matiere)}</td>
+        <td class="${gradeClass(g.note,g.sur)}">${esc(g.note)} / ${esc(g.sur)}</td>
+        <td>${esc(g.moyenne)||"—"}</td></tr>`).join("")}</tbody></table>`
+    : "Aucune note.";
+}
+function courseHtml(c){
+  return `<div class="course ${c.annule ? "canceled" : ""}">
+    <span class="time">${esc(c.start)} – ${esc(c.end)}</span>
+    <span><span class="subj">${esc(c.matiere)}</span>${c.annule ? ' <span class="pill err">Annulé</span>' : ""}<br>
+    <span class="meta">${esc(c.prof)}${c.salle ? " · " + esc(c.salle) : ""}</span></span>
+  </div>`;
+}
+function hwHtml(h){
+  const doneSet = JSON.parse(localStorage.getItem(LS.hwDone) || "[]");
+  const key = h.date + "|" + h.matiere;
+  const done = h.fait || doneSet.includes(key);
+  return `<div class="devoir ${done ? "done" : ""}" data-key="${esc(key)}">
+    <div class="head">
+      <b>${esc(h.matiere)}</b>
+      <span class="row">
+        <span class="pill">${fdate(h.date)}</span>
+        <label class="check" style="margin:0"><input type="checkbox" class="hw-check" ${done ? "checked" : ""}> Fait</label>
+      </span>
+    </div>
+    <div class="desc">${esc(h.description)}</div>
+  </div>`;
+}
+
+function renderEdt(){
+  const d = state.data;
+  $("#edtDate").value = state.edtWeek;
+  const ref = new Date(state.edtWeek + "T12:00:00");
+  const monday = new Date(ref);
+  monday.setDate(ref.getDate() - ((ref.getDay() + 6) % 7));
+  const days = [];
+  for(let i=0; i<6; i++){
+    const dd = new Date(monday); dd.setDate(monday.getDate()+i);
+    days.push(dd.toISOString().slice(0,10));
+  }
+  let html = "";
+  for(const day of days){
+    const list = (d.cours||[]).filter(c=>c.date === day).sort((a,b)=>a.start.localeCompare(b.start));
+    html += `<div class="edt-day"><h3>${fdate(day)}</h3>` +
+      (list.length ? list.map(c=>courseHtml(c)).join("") : '<div class="note">Pas de cours.</div>') + `</div>`;
+  }
+  $("#edtView").innerHTML = html;
+}
+$("#edtPrev").onclick = ()=>{ shiftWeek(-7); };
+$("#edtNext").onclick = ()=>{ shiftWeek(7); };
+$("#edtDate").onchange = ()=>{ state.edtWeek = $("#edtDate").value || state.edtWeek; renderEdt(); };
+function shiftWeek(n){
+  const d = new Date(state.edtWeek + "T12:00:00");
+  d.setDate(d.getDate()+n);
+  state.edtWeek = d.toISOString().slice(0,10);
+  $("#edtDate").value = state.edtWeek;
+  renderEdt();
+}
+
+function renderHw(){
+  const d = state.data;
+  const list = [...(d.devoirs||[])].sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+  $("#hwCount").textContent = list.filter(x=>!x.fait).length + " à faire";
+  $("#hwView").innerHTML = list.length
+    ? list.map(hwHtml).join("")
+    : "Aucun devoir enregistré. 🎉";
+  document.querySelectorAll(".hw-check").forEach(cb=>{
+    cb.onchange = async ()=>{
+      const box = cb.closest(".devoir");
+      const key = box.dataset.key;
+      const [date, matiere] = key.split("|");
+      const doneSet = JSON.parse(localStorage.getItem(LS.hwDone) || "[]");
+      if(cb.checked && !doneSet.includes(key)) doneSet.push(key);
+      if(!cb.checked){ const i = doneSet.indexOf(key); if(i>=0) doneSet.splice(i,1); }
+      localStorage.setItem(LS.hwDone, JSON.stringify(doneSet));
+      box.classList.toggle("done", cb.checked);
+      if(!state.demo && state.bridgeOk){
+        try{
+          await fetch(state.bridgeBase + "/pronote/homework_done", {
+            method: "POST", headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({date, matiere, fait: cb.checked})
+          });
+        }catch(e){}
+      }
+      const d2 = state.data;
+      const item = (d2.devoirs||[]).find(x=>x.date === date && x.matiere === matiere);
+      if(item) item.fait = cb.checked;
+      renderHome();
+    };
+  });
+}
+
+function renderGrades(){
+  const d = state.data;
+  const notes = [...(d.notes||[])].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  $("#grCount").textContent = notes.length;
+  $("#notesKpi").innerHTML = `
+    <div class="kpi"><span>Moyenne générale</span><b>${esc(d.moyenne_generale || "—")}</b></div>
+    <div class="kpi"><span>Moyenne de classe</span><b>${esc(d.moyenne_classe || "—")}</b></div>
+    <div class="kpi"><span>Meilleure note</span><b>${best(notes)}</b></div>`;
+  $("#grTable tbody").innerHTML = notes.length
+    ? notes.map(g=>`<tr>
+        <td>${fdate(g.date)}</td>
+        <td>${esc(g.matiere)}</td>
+        <td class="${gradeClass(g.note,g.sur)}">${esc(g.note)} / ${esc(g.sur)}</td>
+        <td>${esc(g.moyenne)||"—"}</td>
+        <td>${esc(g.coef)||"1"}</td>
+        <td class="note">${esc(g.commentaire)}</td>
+      </tr>`).join("")
+    : '<tr><td colspan="6" class="note">Aucune note pour cette période.</td></tr>';
+}
+function best(notes){
+  let b = null, bv = -1;
+  for(const g of notes){
+    const n = toNum(g.note), o = toNum(g.sur) || 20;
+    if(!isNaN(n) && o && n/o > bv){ bv = n/o; b = g; }
+  }
+  return b ? esc(b.note) + " / " + esc(b.sur) : "—";
+}
+
+function renderAbs(){
+  const d = state.data;
+  const list = d.absences || [];
+  $("#absView").innerHTML = list.length
+    ? `<table><thead><tr><th>Date</th><th>Durée</th><th>Motif</th><th>Statut</th></tr></thead><tbody>${
+        list.map(a=>`<tr><td>${fdate(a.date)}</td><td>${esc(a.heures)||"—"}</td>
+        <td>${esc(a.motif)||"—"}</td>
+        <td><span class="pill ${a.justifiee ? "ok" : "err"}">${a.justifiee ? "Justifiée" : "Non justifiée"}</span></td></tr>`).join("")
+      }</tbody></table>`
+    : "Aucune absence. Parfait ! ✨";
+}
+
+/* ================= Init ================= */
+const cached = localStorage.getItem(LS.data);
+if(cached){
+  try{
+    const j = JSON.parse(cached);
+    if(j && j.eleve){ state.data = j; enterApp(j); renderAll(); }
+  }catch(e){}
+}
+</script>
 </body>
 </html>
