@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OpenTune — Lecteur de musique</title>
+<title>OpenTune — Musique illimitée</title>
 <style>
   :root{
     --bg:#0b0e14; --panel:#131824; --panel2:#1a2130; --line:#242d40;
-    --txt:#e8edf7; --muted:#8b96ad; --acc:#1db954; --acc2:#0ea5a4;
+    --txt:#e8edf7; --muted:#8b96ad; --acc:#cc0fe0; --acc2:#7c4dff;
     --err:#e74c3c; --r:14px;
   }
   *{box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',system-ui,sans-serif;}
   body{background:var(--bg); color:var(--txt); min-height:100vh; padding-bottom:110px;}
   header{
     padding:16px 22px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-    background:linear-gradient(135deg,#0e2a1c,#0d1220); border-bottom:1px solid var(--line);
+    background:linear-gradient(135deg,#2a0e33,#0d1220); border-bottom:1px solid var(--line);
     position:sticky; top:0; z-index:10;
   }
   header h1{font-size:1.25rem; letter-spacing:.02em;}
@@ -48,15 +48,15 @@
     padding:11px 14px; border-radius:10px; font-size:.92rem; flex:1; min-width:200px;
   }
   input[type=text]:focus{outline:none; border-color:var(--acc);}
+  select{background:#0d1320; border:1px solid var(--line); color:var(--txt); padding:10px 12px; border-radius:10px; font-size:.86rem;}
   .pill{font-size:.68rem; padding:2px 9px; border-radius:99px; background:#0d1320; border:1px solid var(--line); color:var(--muted);}
-  /* Grille de résultats */
+  .pill.full{color:var(--acc); border-color:var(--acc);}
   .track-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px;}
   .track{
     background:var(--panel2); border:1px solid var(--line); border-radius:var(--r);
     padding:12px; display:flex; flex-direction:column; gap:8px; transition:.15s;
   }
   .track:hover{border-color:var(--acc);}
-  .track.playing{border-color:var(--acc); box-shadow:0 0 0 1px var(--acc);}
   .track img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px; background:#0d1320;}
   .track .t{font-weight:700; font-size:.85rem; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
   .track .a{color:var(--muted); font-size:.76rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
@@ -66,11 +66,10 @@
     cursor:pointer; font-size:.9rem; flex-shrink:0; display:flex; align-items:center; justify-content:center;}
   .mini:hover{filter:brightness(1.15);}
   .mini.ghosted{background:transparent; border:1px solid var(--line);}
-  .mini.faved{color:var(--warn); border-color:var(--warn);}
-  /* Lecteur */
+  .mini.faved{color:var(--acc); border-color:var(--acc);}
   #player{
     position:fixed; left:0; right:0; bottom:0; z-index:20;
-    background:#0e1420f2; border-top:1px solid var(--line); backdrop-filter:blur(10px);
+    background:#12081af2; border-top:1px solid var(--line); backdrop-filter:blur(10px);
     padding:12px 22px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
   }
   #player img{width:56px; height:56px; border-radius:10px; object-fit:cover; background:#0d1320;}
@@ -102,13 +101,14 @@
   <div style="font-size:1.6rem">🎵</div>
   <div style="flex:1">
     <h1>Open<span>Tune</span></h1>
-    <div class="sub">Cherche, écoute, organise — 100 % dans ton navigateur, aucun compte</div>
+    <div class="sub">Des millions de titres complets et gratuits via Audius — plus tes propres fichiers</div>
   </div>
-  <span class="pill ok">100 % frontend</span>
+  <span class="pill" id="apiBadge">Connexion à Audius…</span>
 </header>
 
 <nav id="nav">
   <button data-tab="search" class="active">🔍 Rechercher</button>
+  <button data-tab="trending">🔥 Tendances</button>
   <button data-tab="favs">❤️ Favoris</button>
   <button data-tab="files">📁 Mes fichiers</button>
   <button data-tab="queue">🎶 File d'attente</button>
@@ -120,12 +120,21 @@
     <div class="card">
       <h2>🔍 Trouver un titre</h2>
       <div class="row" style="margin-bottom:8px">
-        <input type="text" id="searchInput" placeholder="Artiste, titre, album… (Entrée pour chercher)">
+        <input type="text" id="searchInput" placeholder="Artiste, titre… (Entrée pour chercher)">
         <button class="act" id="searchBtn">Chercher</button>
       </div>
-      <p class="note">Résultats via l'API publique iTunes : extraits de 30 s jouables immédiatement. Pour un titre complet, ajoute ton propre fichier dans 📁 Mes fichiers.</p>
+      <p class="note">🎧 <b>Audius</b> : titres <b>complets et gratuits</b> (musique indépendante mise en ligne par les artistes). Si Audius est indisponible, les résultats passent automatiquement en extraits 30 s via iTunes.</p>
     </div>
     <div class="track-grid" id="results"></div>
+  </section>
+
+  <!-- Tendances -->
+  <section class="tab" id="tab-trending">
+    <div class="card">
+      <h2>🔥 Tendances du moment sur Audius</h2>
+      <p class="note" style="margin-bottom:12px">Les titres les plus écoutés, en intégralité. Clique ▶.</p>
+    </div>
+    <div class="track-grid" id="trendGrid"></div>
   </section>
 
   <!-- Favoris -->
@@ -141,7 +150,7 @@
   <section class="tab" id="tab-files">
     <div class="card">
       <h2>📁 Mes fichiers audio</h2>
-      <p class="note" style="margin-bottom:12px">Lecture complète de tes fichiers (mp3, m4a, wav, ogg, flac…). Rien n'est envoyé nulle part : le fichier reste dans ton appareil.</p>
+      <p class="note" style="margin-bottom:12px">Lecture complète de tes fichiers (mp3, m4a, wav, ogg, flac…). Rien n'est envoyé nulle part.</p>
       <div class="row">
         <button class="act" id="fileBtn">➕ Choisir des fichiers</button>
         <input type="file" id="fileInput" accept="audio/*" multiple style="display:none">
@@ -185,70 +194,133 @@
 </div>
 
 <footer>
-  OpenTune — fichier unique, aucune donnée envoyée : recherches via l'API publique iTunes (Apple), fichiers locaux jamais transmis.<br>
-  Extraits de 30 s fournis par Apple Music. Espace de touche = lecture/pause.
+  OpenTune — fichier unique, 100 % frontend. Musique via l'API publique <b>Audius</b> (titres complets mis en ligne par les artistes) · extraits 30 s via iTunes (Apple).<br>
+  Espace = lecture/pause. Aucun compte, aucune clé, aucune donnée personnelle.
 </footer>
 
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
+const APP = "OpenTune";
 function esc(s){ return String(s ?? "").replace(/[<>&"]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c])); }
 
 /* ================= Onglets ================= */
 document.querySelectorAll("#nav button").forEach(b=>{
   b.onclick = ()=>{
     document.querySelectorAll("#nav button").forEach(x=>x.classList.remove("active"));
-    document.querySelectorAll("section.tab").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll("section.tab").forEach(x=>x.classList.toggle("active", false));
     b.classList.add("active");
     $("#tab-"+b.dataset.tab).classList.add("active");
   };
 });
 function switchTab(name){
   document.querySelectorAll("#nav button").forEach(x=>x.classList.toggle("active", x.dataset.tab===name));
-  document.querySelectorAll("section.tab").forEach(x=>x.classList.toggle("active", x.id==="tab-"+name));
+  document.querySelectorAll("section.tab").forEach(x=>x.classList.remove("active"));
+  $("#tab-"+name).classList.add("active");
 }
 
-/* ================= État ================= */
-let queue = [];          // {id, title, artist, art, src, local}
-let current = -1;
-let favs = JSON.parse(localStorage.getItem("ot_favs_v1") || "[]");
-let files = JSON.parse(localStorage.getItem("ot_files_v1") || "[]");
-const audio = new Audio();
-audio.volume = 0.9;
+/* ================= Audius ================= */
+let audiusHost = null;
+async function initAudius(){
+  try{
+    const r = await fetch("https://api.audius.co");
+    const j = await r.json();
+    const hosts = j.data || [];
+    if(hosts.length){
+      audiusHost = hosts[Math.floor(Math.random()*Math.min(hosts.length,5))];
+      $("#apiBadge").textContent = "🎧 Audius connecté";
+      $("#apiBadge").classList.add("full");
+      loadTrending();
+      return;
+    }
+  }catch(e){}
+  audiusHost = "https://discoveryprovider.audius.co";
+  $("#apiBadge").textContent = "🎧 Audius (hôte par défaut)";
+  $("#apiBadge").classList.add("full");
+  loadTrending();
+}
 
-function saveFavs(){ localStorage.setItem("ot_favs_v1", JSON.stringify(favs)); }
-function saveFiles(){ localStorage.setItem("ot_files_v1", JSON.stringify(files)); }
-function favKey(t){ return t.title + "|" + t.artist; }
-function isFav(t){ return favs.some(f=>favKey(f) === favKey(t)); }
+function mapAudius(t){
+  return {
+    id: t.id,
+    title: t.title,
+    artist: (t.user && t.user.name) || "Artiste Audius",
+    art: (t.artwork && (t.artwork["480x480"] || t.artwork["150x150"] || t.artwork["1000x1000"])) || "",
+    src: audiusHost + "/v1/tracks/" + t.id + "/stream?app_name=" + APP,
+    local: false, full: true, duration: t.duration || 0
+  };
+}
+function mapItunes(t){
+  return {
+    id: "it-" + t.trackId,
+    title: t.trackName,
+    artist: t.artistName,
+    art: (t.artworkUrl100||"").replace("100x100","300x300"),
+    src: t.previewUrl,
+    local: false, full: false, duration: 30
+  };
+}
 
-/* ================= Recherche iTunes ================= */
+async function fetchAudius(path){
+  const r = await fetch(audiusHost + path + (path.includes("?") ? "&" : "?") + "app_name=" + APP);
+  if(!r.ok) throw new Error("Audius " + r.status);
+  return r.json();
+}
+
+/* ================= Recherche ================= */
+let searchResults = [];
 async function doSearch(){
   const term = $("#searchInput").value.trim();
   if(!term) return;
   $("#results").innerHTML = '<div class="note">Recherche…</div>';
+  if(audiusHost){
+    try{
+      const j = await fetchAudius("/v1/tracks/search?query=" + encodeURIComponent(term));
+      const tracks = (j.data || []).filter(t=>t.is_streamable !== false).map(mapAudius);
+      if(tracks.length){
+        searchResults = tracks;
+        renderGrid($("#results"), tracks, "search");
+        return;
+      }
+    }catch(e){}
+  }
   try{
     const r = await fetch("https://itunes.apple.com/search?term=" + encodeURIComponent(term) + "&media=music&limit=30");
     const j = await r.json();
-    const tracks = (j.results || []).filter(t=>t.previewUrl);
-    if(!tracks.length){ $("#results").innerHTML = '<div class="note">Aucun résultat avec extrait disponible.</div>'; return; }
-    $("#results").innerHTML = tracks.map(t=>{
-      const item = { title:t.trackName, artist:t.artistName, art:(t.artworkUrl100||"").replace("100x100","300x300"), src:t.previewUrl, local:false };
-      return trackCard(item, "search");
-    }).join("");
-    bindCards("search");
+    const tracks = (j.results || []).filter(t=>t.previewUrl).map(mapItunes);
+    searchResults = tracks;
+    renderGrid($("#results"), tracks, "search");
+    if(!tracks.length) $("#results").innerHTML = '<div class="note">Aucun résultat.</div>';
   }catch(e){
-    $("#results").innerHTML = '<div class="note">Erreur de recherche : ' + esc(e.message) + '</div>';
+    $("#results").innerHTML = '<div class="note">Erreur : ' + esc(e.message) + '</div>';
   }
 }
 $("#searchBtn").onclick = doSearch;
 $("#searchInput").addEventListener("keydown", e=>{ if(e.key === "Enter") doSearch(); });
 
+/* ================= Tendances ================= */
+async function loadTrending(){
+  $("#trendGrid").innerHTML = '<div class="note">Chargement des tendances…</div>';
+  try{
+    const j = await fetchAudius("/v1/tracks/trending?limit=30");
+    const tracks = (j.data || []).map(mapAudius);
+    renderGrid($("#trendGrid"), tracks, "trending");
+  }catch(e){
+    $("#trendGrid").innerHTML = '<div class="note">Audius indisponible pour le moment : ' + esc(e.message) + '</div>';
+  }
+}
+
+/* ================= Cartes ================= */
+function renderGrid(el, tracks, ctx){
+  el.innerHTML = tracks.map((t,i)=>trackCard(t, ctx, i)).join("");
+}
 function trackCard(t, ctx, idx){
   const faved = isFav(t);
   return `<div class="track" data-ctx="${ctx}" data-idx="${idx}">
     <img src="${esc(t.art)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
     <div class="t">${esc(t.title)}</div>
     <div class="a">${esc(t.artist)}</div>
+    <span class="pill ${t.full ? "full" : ""}" style="align-self:flex-start">${t.local ? "📁 local" : t.full ? "🎧 complet" : "extrait 30 s"}</span>
     <div class="actions">
       <button class="mini" onclick='playFrom("${ctx}", ${idx})'>▶</button>
       <button class="mini ghosted ${faved ? "faved" : ""}" onclick='toggleFav("${ctx}", ${idx})' title="Favori">♥</button>
@@ -257,7 +329,8 @@ function trackCard(t, ctx, idx){
   </div>`;
 }
 function getStore(ctx){
-  if(ctx === "search") return window._searchResults || [];
+  if(ctx === "search") return searchResults;
+  if(ctx === "trending") return window._trend || [];
   if(ctx === "favs") return favs;
   if(ctx === "files") return files;
   return queue;
@@ -290,60 +363,66 @@ window.toggleFav = (ctx, idx)=>{
     if(item) card.querySelector(".mini.ghosted").classList.toggle("faved", isFav(item));
   });
 };
-function bindCards(ctx){
-  window._searchResults = window._searchResults || [];
-  document.querySelectorAll(`.track[data-ctx="${ctx}"]`).forEach(card=>{
-    card._item = getStore(ctx)[card.dataset.idx];
-  });
-}
 
 /* ================= Fichiers locaux ================= */
+let files = JSON.parse(localStorage.getItem("ot_files_v1") || "[]");
+function saveFiles(){ localStorage.setItem("ot_files_v1", JSON.stringify(files)); }
 $("#fileBtn").onclick = ()=>$("#fileInput").click();
 $("#fileInput").onchange = e=>{
   for(const f of e.target.files){
-    files.push({ title:f.name.replace(/\.[^.]+$/,""), artist:"Fichier local", art:"", src:URL.createObjectURL(f), local:true });
+    files.push({ id:"f"+Date.now()+Math.random(), title:f.name.replace(/\.[^.]+$/,""), artist:"Fichier local",
+                 art:"", src:URL.createObjectURL(f), local:true, full:true });
   }
   saveFiles(); renderFiles();
   e.target.value = "";
 };
 function renderFiles(){
-  $("#fileGrid").innerHTML = files.length
-    ? files.map((t,i)=>trackCard(t, "files", i)).join("")
-    : '<div class="note">Aucun fichier. Clique « Choisir des fichiers ».</div>';
+  renderGrid($("#fileGrid"), files, "files");
+  if(!files.length) $("#fileGrid").innerHTML = '<div class="note">Aucun fichier. Clique « Choisir des fichiers ».</div>';
 }
 
 /* ================= Favoris ================= */
+let favs = JSON.parse(localStorage.getItem("ot_favs_v1") || "[]");
+function saveFavs(){ localStorage.setItem("ot_favs_v1", JSON.stringify(favs)); }
+function favKey(t){ return t.title + "|" + t.artist; }
+function isFav(t){ return favs.some(f=>favKey(f) === favKey(t)); }
 function renderFavs(){
   $("#favCount").textContent = favs.length;
-  $("#favGrid").innerHTML = favs.length
-    ? favs.map((t,i)=>trackCard(t, "favs", i)).join("")
-    : '<div class="note">Aucun favori. Clique le ♥ sur un titre.</div>';
+  if(favs.length) renderGrid($("#favGrid"), favs, "favs");
+  else $("#favGrid").innerHTML = '<div class="note">Aucun favori. Clique le ♥ sur un titre.</div>';
 }
 
 /* ================= File d'attente ================= */
+let queue = [];
+let current = -1;
 function renderQueue(){
   $("#qCount").textContent = queue.length;
   $("#queueList").innerHTML = queue.length ? queue.map((t,i)=>`
-    <div class="devoir" style="display:flex; align-items:center; gap:12px; ${i === current ? "border-color:var(--acc)" : ""}">
+    <div class="card" style="display:flex; align-items:center; gap:12px; padding:12px 14px; ${i === current ? "border-color:var(--acc)" : ""}">
       <span class="note" style="min-width:22px">${i+1}</span>
-      <div style="flex:1">
+      <div style="flex:1; min-width:0">
         <b style="font-size:.88rem">${esc(t.title)}</b>
-        <div class="note">${esc(t.artist)}${t.local ? " · 📁 local" : " · extrait 30 s"}</div>
+        <div class="note">${esc(t.artist)} · ${t.local ? "📁 local" : t.full ? "🎧 complet" : "extrait 30 s"}</div>
       </div>
       <button class="mini" onclick='playIndex(${i})'>▶</button>
       <button class="mini ghosted" onclick='removeQueue(${i})'>✕</button>
     </div>`).join("") : '<div class="note">File vide. Ajoute des titres avec ＋ ou ▶.</div>';
 }
 window.removeQueue = i=>{
-  if(i === current){ audio.pause(); }
+  if(i === current) audio.pause();
   queue.splice(i,1);
   if(i < current) current--;
-  else if(i === current){ current = Math.min(current, queue.length-1); if(current >= 0) playIndex(current); else stopAll(); }
+  else if(i === current){
+    current = Math.min(current, queue.length-1);
+    if(current >= 0) playIndex(current); else stopAll();
+  }
   renderQueue();
 };
 $("#qClearBtn").onclick = ()=>{ audio.pause(); queue = []; current = -1; stopAll(); renderQueue(); };
 
 /* ================= Lecture ================= */
+const audio = new Audio();
+audio.volume = 0.9;
 function fmt(s){
   if(!isFinite(s)) return "0:00";
   const m = Math.floor(s/60), sec = Math.floor(s%60);
@@ -360,12 +439,6 @@ function playIndex(i){
   const art = $("#pArt");
   if(t.art){ art.src = t.art; art.style.visibility = "visible"; } else art.style.visibility = "hidden";
   renderQueue();
-  markPlaying();
-}
-function markPlaying(){
-  document.querySelectorAll(".track").forEach(card=>{
-    card.classList.remove("playing");
-  });
 }
 function stopAll(){
   $("#pTitle").textContent = "—"; $("#pArtist").textContent = "—";
@@ -405,6 +478,7 @@ document.addEventListener("keydown", e=>{
 renderFavs();
 renderFiles();
 renderQueue();
+initAudius();
 </script>
 </body>
 </html>
