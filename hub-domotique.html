@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hub Domotique — Gestionnaire d'appareils</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#131824; --panel2:#1a2130; --line:#242d40;
+    --txt:#e8edf7; --muted:#8b96ad; --acc:#4f8cff; --acc2:#7c5cff;
+    --ok:#2ecc71; --warn:#f39c12; --err:#e74c3c; --r:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',system-ui,-apple-system,sans-serif;}
+  body{background:var(--bg); color:var(--txt); min-height:100vh;}
+  header{
+    padding:18px 24px; display:flex; align-items:center; gap:14px;
+    background:linear-gradient(135deg,#131a2a,#0d1220); border-bottom:1px solid var(--line);
+    position:sticky; top:0; z-index:10; flex-wrap:wrap;
+  }
+  header h1{font-size:1.25rem; font-weight:700;}
+  header .sub{color:var(--muted); font-size:.8rem;}
+  .badge{font-size:.7rem; padding:3px 10px; border-radius:99px; border:1px solid var(--line); color:var(--muted);}
+  .badge.on{color:var(--ok); border-color:var(--ok);}
+  nav{display:flex; gap:6px; padding:12px 24px 0; flex-wrap:wrap;}
+  nav button{
+    background:var(--panel); color:var(--muted); border:1px solid var(--line);
+    padding:9px 16px; border-radius:10px; cursor:pointer; font-size:.88rem; transition:.15s;
+  }
+  nav button:hover{color:var(--txt); border-color:var(--acc);}
+  nav button.active{background:var(--acc); color:#fff; border-color:var(--acc);}
+  main{padding:20px 24px 60px; max-width:1100px; margin:0 auto;}
+  section.tab{display:none;}
+  section.tab.active{display:block;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:18px; margin-bottom:16px;}
+  .card h2{font-size:1rem; margin-bottom:10px; display:flex; align-items:center; gap:8px;}
+  .card p.note{color:var(--muted); font-size:.83rem; line-height:1.55; margin-bottom:12px;}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  button.act{
+    background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; border:none;
+    padding:10px 18px; border-radius:10px; cursor:pointer; font-size:.88rem; font-weight:600; transition:.15s;
+  }
+  button.act:hover{filter:brightness(1.12);}
+  button.act:disabled{opacity:.4; cursor:not-allowed;}
+  button.ghost{
+    background:transparent; color:var(--txt); border:1px solid var(--line);
+    padding:9px 16px; border-radius:10px; cursor:pointer; font-size:.85rem;
+  }
+  button.ghost:hover{border-color:var(--acc);}
+  button.danger{border-color:var(--err); color:var(--err);}
+  .dev-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px;}
+  .dev{
+    background:var(--panel2); border:1px solid var(--line); border-radius:var(--r); padding:16px;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .dev .top{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .dev .name{font-weight:700; font-size:.95rem; word-break:break-all;}
+  .dev .meta{color:var(--muted); font-size:.78rem; word-break:break-all;}
+  .dot{width:9px; height:9px; border-radius:50%; background:var(--muted); flex-shrink:0;}
+  .dot.on{background:var(--ok); box-shadow:0 0 8px var(--ok);}
+  .dot.off{background:var(--err);}
+  .tag{font-size:.68rem; padding:2px 9px; border-radius:99px; background:#0d1320; border:1px solid var(--line); color:var(--muted);}
+  .log{
+    background:#0a0e18; border:1px solid var(--line); border-radius:10px; padding:12px;
+    font-family:Consolas,monospace; font-size:.75rem; color:var(--muted);
+    max-height:220px; overflow-y:auto; white-space:pre-wrap; line-height:1.5;
+  }
+  /* Télécommande Fire TV */
+  .remote-wrap{display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start;}
+  .remote{
+    background:var(--panel2); border:1px solid var(--line); border-radius:26px; padding:22px;
+    display:grid; grid-template-columns:repeat(3,64px); gap:10px; justify-content:center;
+  }
+  .remote button{
+    height:56px; border-radius:14px; border:1px solid var(--line); background:#10151f;
+    color:var(--txt); font-size:1.05rem; cursor:pointer; transition:.1s;
+  }
+  .remote button:active{background:var(--acc); transform:scale(.94);}
+  .remote .ring{
+    grid-column:1 / span 3; width:200px; height:200px; border-radius:50%;
+    background:#0d1320; border:1px solid var(--line); position:relative; margin:6px auto;
+  }
+  .remote .ring button{position:absolute; width:58px; height:58px; border-radius:50%;}
+  .remote .ring .up{top:2px; left:71px;} .remote .ring .down{bottom:2px; left:71px;}
+  .remote .ring .left{left:2px; top:71px;} .remote .ring .right{right:2px; top:71px;}
+  .remote .ring .ok{top:71px; left:71px; background:var(--acc); border:none; font-size:.7rem; font-weight:700;}
+  .remote .wide{grid-column:1 / span 3; height:48px; font-size:.8rem;}
+  .remote .half{grid-column:span 1; height:48px; font-size:.75rem;}
+  input[type=text]{
+    background:#0d1320; border:1px solid var(--line); color:var(--txt);
+    padding:10px 14px; border-radius:10px; font-size:.9rem; min-width:220px;
+  }
+  input[type=text]:focus{outline:none; border-color:var(--acc);}
+  table{width:100%; border-collapse:collapse; font-size:.82rem;}
+  th,td{padding:8px 10px; border-bottom:1px solid var(--line); text-align:left;}
+  th{color:var(--muted); font-weight:600;}
+  .kpi{display:flex; gap:14px; flex-wrap:wrap; margin-top:10px;}
+  .kpi div{background:#0d1320; border:1px solid var(--line); border-radius:10px; padding:10px 14px; font-size:.8rem;}
+  .kpi b{display:block; font-size:1.15rem; color:var(--acc);}
+  a{color:var(--acc);}
+  .hidden{display:none !important;}
+  footer{color:var(--muted); font-size:.75rem; text-align:center; padding:20px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="font-size:1.6rem">📡</div>
+  <div style="flex:1">
+    <h1>Hub Domotique</h1>
+    <div class="sub">Découverte Bluetooth / Réseau local &amp; contrôle — Fire TV · Alexa · AirPods Max</div>
+  </div>
+  <span class="badge" id="btBadge">Bluetooth : inconnu</span>
+  <span class="badge" id="bridgeBadge">Pont local : non connecté</span>
+</header>
+
+<nav id="nav">
+  <button data-tab="scan" class="active">🔍 Scanner</button>
+  <button data-tab="devices">📱 Mes appareils</button>
+  <button data-tab="firetv">📺 Fire TV</button>
+  <button data-tab="alexa">🔊 Alexa</button>
+  <button data-tab="airpods">🎧 AirPods Max</button>
+  <button data-tab="bridge">🌉 Pont local</button>
+</nav>
+
+<main>
+
+<!-- ============ SCAN ============ -->
+<section class="tab active" id="tab-scan">
+  <div class="card">
+    <h2>🔍 Découverte d'appareils</h2>
+    <p class="note">
+      <b>Bluetooth</b> : le navigateur utilise l'API Web Bluetooth (Chrome / Edge). Tu choisis l'appareil dans la
+      fenêtre de sélection du système — c'est une sécurité imposée par le navigateur, aucun scan passif furtif n'est possible.<br>
+      <b>WiFi &amp; réseau local</b> : les navigateurs interdisent de scanner le réseau. Le bouton « Scanner le réseau local »
+      passe par le <b>pont local</b> (onglet 🌉), un petit script Python qui tourne sur ton PC et fait le vrai scan (ping sweep + mDNS).
+    </p>
+    <div class="row">
+      <button class="act" id="btScanBtn">🔵 Scanner Bluetooth</button>
+      <button class="act" id="lanScanBtn">🌐 Scanner le réseau local</button>
+      <button class="ghost" id="addManualBtn">➕ Ajouter manuellement</button>
+      <button class="ghost danger" id="clearAllBtn">🗑 Tout effacer</button>
+    </div>
+    <div class="kpi" id="scanKpi"></div>
+  </div>
+  <div class="card">
+    <h2>📜 Journal</h2>
+    <div class="log" id="log">Prêt.</div>
+  </div>
+</section>
+
+<!-- ============ DEVICES ============ -->
+<section class="tab" id="tab-devices">
+  <div class="card">
+    <h2>📱 Appareils enregistrés <span class="tag" id="devCount">0</span></h2>
+    <div class="dev-grid" id="devGrid"></div>
+  </div>
+</section>
+
+<!-- ============ FIRE TV ============ -->
+<section class="tab" id="tab-firetv">
+  <div class="card">
+    <h2>📺 Télécommande Fire TV</h2>
+    <p class="note">
+      Sur ton Fire TV : <b>Paramètres → My Fire TV → Options pour développeurs → ADB debugging : Activé</b>,
+      puis note l'adresse IP (Paramètres → My Fire TV → À propos → Réseau).
+      Le pont local enverra les touches via ADB (<code>input keyevent</code>). Sans pont, les touches ne peuvent pas partir du navigateur.
+    </p>
+    <div class="row" style="margin-bottom:16px">
+      <input type="text" id="ftvIp" placeholder="IP du Fire TV (ex : 192.168.1.42)">
+      <button class="act" id="ftvConnectBtn">🔌 Connecter</button>
+      <span class="tag" id="ftvStatus">Non connecté</span>
+    </div>
+    <div class="remote-wrap">
+      <div class="remote">
+        <button class="half" data-key="POWER" title="Veille">⏻</button>
+        <button class="half" data-key="MUTE" title="Muet">🔇</button>
+        <button class="half" data-key="HOME">⌂</button>
+        <div class="ring">
+          <button class="up" data-key="DPAD_UP">▲</button>
+          <button class="down" data-key="DPAD_DOWN">▼</button>
+          <button class="left" data-key="DPAD_LEFT">◀</button>
+          <button class="right" data-key="DPAD_RIGHT">▶</button>
+          <button class="ok" data-key="DPAD_CENTER">OK</button>
+        </div>
+        <button class="wide" data-key="BACK">↩ Retour</button>
+        <button class="half" data-key="VOLUME_UP">🔊 +</button>
+        <button class="half" data-key="VOLUME_DOWN">🔉 −</button>
+        <button class="half" data-key="MENU">☰</button>
+        <button class="half" data-key="MEDIA_PLAY_PAUSE">⏯</button>
+        <button class="half" data-key="MEDIA_REWIND">⏪</button>
+        <button class="half" data-key="MEDIA_FAST_FORWARD">⏩</button>
+        <button class="wide" data-key="RECENT_APPS">🗂 Apps récentes</button>
+      </div>
+      <div style="flex:1; min-width:260px">
+        <div class="card" style="margin:0">
+          <h2>⌨️ Saisie texte</h2>
+          <p class="note">Envoie du texte directement dans un champ de recherche Fire TV.</p>
+          <div class="row">
+            <input type="text" id="ftvText" placeholder="Texte à envoyer…">
+            <button class="act" id="ftvTextBtn">Envoyer</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <h2>⚡ Raccourcis apps</h2>
+          <div class="row">
+            <button class="ghost" data-app="com.amazon.firetv.youtube">YouTube</button>
+            <button class="ghost" data-app="com.netflix.ninja">Netflix</button>
+            <button class="ghost" data-app="com.amazon.avod.thirdpartyclient">Prime Video</button>
+            <button class="ghost" data-app="com.spotify.music">Spotify</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ALEXA ============ -->
+<section class="tab" id="tab-alexa">
+  <div class="card">
+    <h2>🔊 Contrôle Alexa</h2>
+    <p class="note">
+      Amazon n'offre <b>aucun accès direct</b> à un Echo depuis un navigateur : il faut passer par le cloud Amazon.
+      Deux voies possibles :<br>
+      1️⃣ <b>Skills / Routines</b> — crée une routine « ouverte » (ex : « Alexa, allume le salon ») et déclenche-la ici via le pont local
+      qui parle à un <a href="https://developer.amazon.com/en-US/docs/alexa/smapi-api-overview.html" target="_blank">endpoint Skill</a> ou à <a href="https://www.home-assistant.io/integrations/alexa/" target="_blank">Home Assistant + Alexa Media Player</a>.<br>
+      2️⃣ <b>Web ouvert</b> — raccourcis vers l'app Alexa web pour gérer tes appareils manuellement.
+    </p>
+    <div class="row">
+      <input type="text" id="alexaCmd" placeholder="Commande (ex : allume la lumière du salon)">
+      <button class="act" id="alexaSendBtn">Envoyer via pont</button>
+      <button class="ghost" onclick="window.open('https://alexa.amazon.com','_blank')">Ouvrir Alexa Web</button>
+      <button class="ghost" onclick="window.open('https://alexa.amazon.com/spa/index.html#routines','_blank')">Mes routines</button>
+    </div>
+    <p class="note" style="margin-top:12px" id="alexaResult"></p>
+  </div>
+</section>
+
+<!-- ============ AIRPODS ============ -->
+<section class="tab" id="tab-airpods">
+  <div class="card">
+    <h2>🎧 AirPods Max</h2>
+    <p class="note">
+      ⚠️ Réalité technique : les AirPods Max utilisent le Bluetooth <b>Classic</b> + un protocole Apple privé (AAP/L2CAP).
+      Un navigateur <b>ne peut ni s'y connecter ni les piloter</b> (pas de GATT standard, Apple bloque l'appairage navigateur).
+      Ce panneau sert de <b>tableau de bord</b> : état, batterie (saisie manuelle ou via pont + macOS), et raccourcis vers les réglages.
+    </p>
+    <div class="row" style="margin-bottom:14px">
+      <button class="act" id="apTryBtn">🔵 Tenter une détection Bluetooth</button>
+      <button class="ghost" id="apSaveBtn">💾 Enregistrer l'état</button>
+    </div>
+    <div class="row" style="margin-bottom:14px">
+      <input type="text" id="apBattery" placeholder="Batterie % (ex : 78)" style="min-width:140px">
+      <select id="apMode" style="background:#0d1320;border:1px solid var(--line);color:var(--txt);padding:10px;border-radius:10px">
+        <option value="—">Mode : —</option>
+        <option value="ANC">Réduction de bruit</option>
+        <option value="Transparence">Transparence</option>
+        <option value="Normal">Normal</option>
+      </select>
+    </div>
+    <div class="kpi">
+      <div>Batterie<b id="apBattVal">—</b></div>
+      <div>Mode audio<b id="apModeVal">—</b></div>
+      <div>Connexion<b id="apConnVal">Non détecté</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BRIDGE ============ -->
+<section class="tab" id="tab-bridge">
+  <div class="card">
+    <h2>🌉 Pont local</h2>
+    <p class="note">
+      Le pont est un mini-serveur Python à lancer sur ton ordinateur (même réseau que tes appareils).
+      Il donne au navigateur les super-pouvoirs manquants : scan réseau, ping, contrôle ADB Fire TV.
+      1️⃣ Clique sur « Télécharger le pont » — 2️⃣ <code>python pont.py</code> — 3️⃣ connecte-le ci-dessous.
+    </p>
+    <div class="row" style="margin-bottom:14px">
+      <input type="text" id="bridgeUrl" value="http://127.0.0.1:8765" style="min-width:240px">
+      <button class="act" id="bridgeConnectBtn">🔌 Connecter le pont</button>
+      <button class="ghost" id="bridgeDlBtn">⬇ Télécharger le pont (pont.py)</button>
+    </div>
+    <div class="log" id="bridgeLog">Pont non connecté.</div>
+  </div>
+  <div class="card">
+    <h2>🌐 Résultats du scan réseau</h2>
+    <table id="lanTable">
+      <thead><tr><th>IP</th><th>Nom</th><th>Type détecté</th><th>Ports ouverts</th></tr></thead>
+      <tbody><tr><td colspan="4" style="color:var(--muted)">Lance un scan depuis l'onglet 🔍 Scanner.</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+</main>
+<footer>Hub Domotique — fichier unique, aucune donnée envoyée sur Internet. Tout est stocké localement (localStorage).</footer>
+
+<script>
+"use strict";
+/* ================= État & stockage ================= */
+const LS_KEY = "hub_devices_v1";
+let devices = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+let bridgeOk = false, bridgeBase = "";
+let ftvIp = localStorage.getItem("hub_ftv_ip") || "";
+
+const $ = s => document.querySelector(s);
+const logEl = $("#log");
+function log(msg, cls){
+  const t = new Date().toLocaleTimeString("fr-FR");
+  logEl.textContent += `\n[${t}] ${msg}`;
+  logEl.scrollTop = logEl.scrollHeight;
+  logEl.style.color = cls === "err" ? "var(--err)" : cls === "ok" ? "var(--ok)" : "var(--muted)";
+}
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(devices)); renderDevices(); renderKpi(); }
+
+/* ================= Onglets ================= */
+document.querySelectorAll("#nav button").forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll("#nav button").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll("section.tab").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    $("#tab-"+b.dataset.tab).classList.add("active");
+  };
+});
+
+/* ================= Web Bluetooth ================= */
+const btOk = !!navigator.bluetooth;
+$("#btBadge").textContent = "Bluetooth : " + (btOk ? "disponible" : "non supporté");
+if(btOk) $("#btBadge").classList.add("on");
+
+$("#btScanBtn").onclick = async ()=>{
+  if(!navigator.bluetooth){ log("Web Bluetooth non supporté par ce navigateur. Utilise Chrome ou Edge sur desktop/Android.", "err"); return; }
+  try{
+    log("Recherche Bluetooth… choisis un appareil dans la fenêtre système.");
+    const d = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: ["battery_service","device_information","generic_access"]
+    });
+    log("Appareil sélectionné : " + (d.name || "(sans nom)") + " — id " + d.id, "ok");
+    const dev = {
+      id: d.id, name: d.name || "Appareil BT", type: "bluetooth",
+      gatt: false, battery: null, services: [], seen: Date.now()
+    };
+    try{
+      const srv = await d.gatt.connect();
+      dev.gatt = true;
+      const svcs = await srv.getPrimaryServices();
+      dev.services = svcs.map(s=>s.uuid);
+      log("GATT connecté — " + dev.services.length + " service(s).", "ok");
+      const bs = svcs.find(s=>s.uuid === "battery_service");
+      if(bs){
+        const ch = await bs.getCharacteristic("battery_level");
+        const v = await ch.readValue();
+        dev.battery = v.getUint8(0);
+        log("Batterie : " + dev.battery + "%", "ok");
+      }
+      d.gatt.disconnect();
+    }catch(e){ log("GATT indisponible (" + e.message + ") — appareil enregistré en mode découverte."); }
+    const i = devices.findIndex(x=>x.id === dev.id);
+    if(i >= 0) devices[i] = dev; else devices.push(dev);
+    save();
+  }catch(e){
+    if(e.name === "NotFoundError") log("Sélection annulée.");
+    else log("Erreur Bluetooth : " + e.message, "err");
+  }
+};
+
+/* ================= Réseau local (via pont) ================= */
+$("#lanScanBtn").onclick = async ()=>{
+  if(!bridgeOk){ log("Connecte d'abord le pont local (onglet 🌉).", "err"); switchTab("bridge"); return; }
+  log("Scan du réseau local via le pont… (peut prendre 10-30 s)");
+  try{
+    const r = await fetch(bridgeBase + "/scan");
+    const data = await r.json();
+    renderLan(data.devices || []);
+    (data.devices || []).forEach(d=>{
+      const id = "lan-" + d.ip;
+      const dev = { id, name: d.name || d.ip, type: "network", ip: d.ip,
+                    kind: d.kind, ports: d.ports, seen: Date.now() };
+      const i = devices.findIndex(x=>x.id === id);
+      if(i >= 0) devices[i] = dev; else devices.push(dev);
+    });
+    save();
+    log("Scan terminé : " + (data.devices||[]).length + " appareil(s) trouvé(s).", "ok");
+  }catch(e){ log("Échec du scan : " + e.message, "err"); }
+};
+
+function renderLan(list){
+  const tb = $("#lanTable tbody");
+  if(!list.length){ tb.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">Aucun appareil trouvé.</td></tr>'; return; }
+  tb.innerHTML = list.map(d=>
+    `<tr><td>${d.ip}</td><td>${esc(d.name||"—")}</td><td>${esc(d.kind||"—")}</td><td>${(d.ports||[]).join(", ")||"—"}</td></tr>`
+  ).join("");
+}
+function esc(s){ return String(s).replace(/[<>&"]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c])); }
+
+/* ================= Rendu appareils ================= */
+function renderDevices(){
+  const g = $("#devGrid");
+  $("#devCount").textContent = devices.length;
+  if(!devices.length){
+    g.innerHTML = '<div class="card" style="grid-column:1/-1;color:var(--muted)">Aucun appareil. Va dans 🔍 Scanner.</div>';
+    return;
+  }
+  g.innerHTML = devices.map(d=>{
+    const online = Date.now() - (d.seen||0) < 3600e3;
+    const isFtv = d.kind === "fire_tv" || (d.ports||[]).includes(5555);
+    return `<div class="dev">
+      <div class="top">
+        <span class="dot ${online?"on":"off"}"></span>
+        <span class="name">${esc(d.name)}</span>
+        <span class="tag">${esc(d.type)}</span>
+      </div>
+      <div class="meta">${d.ip ? "IP : " + esc(d.ip) : "ID : " + esc(d.id)}</div>
+      <div class="meta">${d.battery != null ? "🔋 " + d.battery + "%" : ""}${d.services ? " · " + d.services.length + " service(s)" : ""}${d.ports ? " · ports " + d.ports.join(",") : ""}</div>
+      <div class="row">
+        ${isFtv ? `<button class="ghost" onclick="useAsFireTV('${esc(d.ip)}')">📺 Utiliser comme Fire TV</button>` : ""}
+        ${d.type === "bluetooth" ? `<button class="ghost" onclick="reconnectBT('${esc(d.id)}')">🔄 Reconnecter</button>` : ""}
+        <button class="ghost danger" onclick="removeDev('${esc(d.id)}')">Supprimer</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+window.useAsFireTV = ip => { ftvIp = ip; localStorage.setItem("hub_ftv_ip", ip); $("#ftvIp").value = ip; switchTab("firetv"); log("Fire TV sélectionnée : " + ip, "ok"); };
+window.removeDev = id => { devices = devices.filter(d=>d.id !== id); save(); };
+window.reconnectBT = id => {
+  const d = devices.find(x=>x.id === id);
+  log("Relance un scan Bluetooth puis sélectionne « " + (d ? d.name : id) + " » pour rafraîchir sa connexion.");
+  switchTab("scan");
+};
+function renderKpi(){
+  const bt = devices.filter(d=>d.type === "bluetooth").length;
+  const nw = devices.filter(d=>d.type === "network").length;
+  $("#scanKpi").innerHTML = `
+    <div>Bluetooth<b>${bt}</b></div>
+    <div>Réseau<b>${nw}</b></div>
+    <div>Total<b>${devices.length}</b></div>`;
+}
+function switchTab(name){
+  document.querySelectorAll("#nav button").forEach(x=>x.classList.toggle("active", x.dataset.tab === name));
+  document.querySelectorAll("section.tab").forEach(x=>x.classList.toggle("active", x.id === "tab-"+name));
+}
+
+/* Ajout manuel */
+$("#addManualBtn").onclick = ()=>{
+  const name = prompt("Nom de l'appareil :"); if(!name) return;
+  const ip = prompt("Adresse IP (optionnel) :") || "";
+  devices.push({ id: "man-" + Date.now(), name, type: "manuel", ip, seen: Date.now() });
+  save(); log("Appareil ajouté : " + name, "ok");
+};
+$("#clearAllBtn").onclick = ()=>{ if(confirm("Effacer tous les appareils enregistrés ?")){ devices = []; save(); log("Liste effacée."); } };
+
+/* ================= Pont local ================= */
+$("#bridgeConnectBtn").onclick = async ()=>{
+  bridgeBase = $("#bridgeUrl").value.replace(/\/+$/,"");
+  $("#bridgeLog").textContent = "Connexion à " + bridgeBase + " …";
+  try{
+    const r = await fetch(bridgeBase + "/ping");
+    const j = await r.json();
+    bridgeOk = j.ok === true;
+    $("#bridgeLog").textContent = "Pont connecté ✓  version " + (j.version||"?") + "\nADB : " + (j.adb||"?");
+    $("#bridgeBadge").textContent = "Pont local : connecté";
+    $("#bridgeBadge").classList.add("on");
+    log("Pont local connecté.", "ok");
+  }catch(e){
+    bridgeOk = false;
+    $("#bridgeLog").textContent = "Échec : " + e.message + "\nLance « python pont.py » puis réessaie. (Le navigateur ne peut joindre que http, pas https local.)";
+    $("#bridgeBadge").textContent = "Pont local : non connecté";
+    log("Pont inaccessible : " + e.message, "err");
+  }
+};
+
+/* Téléchargement du script pont */
+$("#bridgeDlBtn").onclick = ()=>{
+  const script = String.raw`#!/usr/bin/env python3
+# pont.py — pont local pour le Hub Domotique (fichier HTML unique)
+# Usage : python pont.py   (port 8765)
+# Nécessite : python3 + adb dans le PATH (pour le Fire TV)
+import json, socket, subprocess, concurrent.futures
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+PORT = 8765
+COMMON_PORTS = [22, 80, 443, 5555, 8008, 8009, 8080, 8443, 6466, 3689, 7000]
+
+def my_subnet():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80)); ip = s.getsockname()[0]
+    except Exception:
+        ip = "192.168.1.1"
+    finally:
+        s.close()
+    base = ".".join(ip.split(".")[:3])
+    return base, ip
+
+def ping(ip):
+    try:
+        subprocess.run(["ping","-c","1","-W","1",ip] if socket.os.name!="nt"
+                       else ["ping","-n","1","-w","1000",ip],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
+        return True
+    except Exception:
+        return False
+
+def port_open(ip, port, t=0.4):
+    try:
+        with socket.create_connection((ip, port), timeout=t):
+            return True
+    except Exception:
+        return False
+
+def probe(ip):
+    if not ping(ip): return None
+    open_ports = [p for p in COMMON_PORTS if port_open(ip, p)]
+    name, kind = ip, "inconnu"
+    if 5555 in open_ports: kind, name = "fire_tv", "Fire TV / Android TV"
+    elif 8009 in open_ports or 8008 in open_ports: kind = "chromecast"
+    elif 3689 in open_ports: kind = "airplay/itunes"
+    elif 7000 in open_ports: kind = "airplay"
+    elif 80 in open_ports or 443 in open_ports: kind = "serveur web"
+    return {"ip": ip, "name": name, "kind": kind, "ports": open_ports}
+
+def scan_network():
+    base, me = my_subnet()
+    ips = [f"{base}.{i}" for i in range(1, 255)]
+    with concurrent.futures.ThreadPoolExecutor(64) as ex:
+        return [r for r in ex.map(probe, ips) if r]
+
+class H(BaseHTTPRequestHandler):
+    def _json(self, obj):
+        b = json.dumps(obj).encode()
+        self.send_response(200)
+        self.send_header("Content-Type","application/json")
+        self.send_header("Access-Control-Allow-Origin","*")
+        self.end_headers()
+        self.wfile.write(b)
+    def log_message(self, *a): pass
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin","*")
+        self.send_header("Access-Control-Allow-Methods","GET,POST,OPTIONS")
+        self.send_header("Access-Control-Allow-Headers","Content-Type")
+        self.end_headers()
+    def do_GET(self):
+        if self.path == "/ping":
+            try:
+                v = subprocess.run(["adb","version"], capture_output=True, timeout=5).returncode == 0
+                self._json({"ok": True, "version": 1, "adb": "disponible" if v else "absent"})
+            except Exception:
+                self._json({"ok": True, "version": 1, "adb": "absent"})
+        elif self.path == "/scan":
+            self._json({"ok": True, "devices": scan_network()})
+        else:
+            self._json({"ok": False})
+    def do_POST(self):
+        n = int(self.headers.get("Content-Length", 0))
+        body = json.loads(self.rfile.read(n) or b"{}")
+        if self.path == "/firetv/key":
+            ip, key = body.get("ip"), body.get("key")
+            if not ip or not key: return self._json({"ok": False, "error": "ip/key manquants"})
+            try:
+                subprocess.run(["adb","connect",f"{ip}:5555"], capture_output=True, timeout=6)
+                r = subprocess.run(["adb","-s",f"{ip}:5555","shell","input","keyevent","KEYCODE_"+key],
+                                   capture_output=True, timeout=8)
+                self._json({"ok": r.returncode == 0})
+            except Exception as e:
+                self._json({"ok": False, "error": str(e)})
+        elif self.path == "/firetv/text":
+            ip, text = body.get("ip"), body.get("text","")
+            try:
+                subprocess.run(["adb","connect",f"{ip}:5555"], capture_output=True, timeout=6)
+                r = subprocess.run(["adb","-s",f"{ip}:5555","shell","input","text",text],
+                                   capture_output=True, timeout=8)
+                self._json({"ok": r.returncode == 0})
+            except Exception as e:
+                self._json({"ok": False, "error": str(e)})
+        elif self.path == "/firetv/app":
+            ip, pkg = body.get("ip"), body.get("package","")
+            try:
+                subprocess.run(["adb","connect",f"{ip}:5555"], capture_output=True, timeout=6)
+                r = subprocess.run(["adb","-s",f"{ip}:5555","shell","monkey","-p",pkg,"-c",
+                                    "android.intent.category.LAUNCHER","1"], capture_output=True, timeout=10)
+                self._json({"ok": r.returncode == 0})
+            except Exception as e:
+                self._json({"ok": False, "error": str(e)})
+        elif self.path == "/alexa/command":
+            self._json({"ok": False, "error": "Configure Home Assistant + Alexa Media Player, puis adapte ce point d'entree."})
+        else:
+            self._json({"ok": False})
+
+print(f"Pont local demarre sur http://127.0.0.1:{PORT}")
+HTTPServer(("127.0.0.1", PORT), H).serve_forever()
+`;
+  const blob = new Blob([script], {type: "text/x-python"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "pont.py";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  log("pont.py téléchargé. Lance « python pont.py » puis connecte le pont.", "ok");
+};
+
+/* ================= Fire TV ================= */
+$("#ftvIp").value = ftvIp;
+$("#ftvConnectBtn").onclick = ()=>{
+  ftvIp = $("#ftvIp").value.trim();
+  if(!ftvIp){ $("#ftvStatus").textContent = "IP requise"; return; }
+  localStorage.setItem("hub_ftv_ip", ftvIp);
+  if(!bridgeOk){ $("#ftvStatus").textContent = "⚠ Pont requis"; switchTab("bridge"); return; }
+  $("#ftvStatus").textContent = "Test ADB…";
+  fetch(bridgeBase + "/firetv/key", {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ip: ftvIp, key: "MENU"})
+  }).then(r=>r.json()).then(j=>{
+    $("#ftvStatus").textContent = j.ok ? "✓ Connecté" : "✗ " + (j.error || "échec ADB");
+    $("#ftvStatus").style.color = j.ok ? "var(--ok)" : "var(--err)";
+  }).catch(e=>{ $("#ftvStatus").textContent = "✗ " + e.message; });
+};
+
+document.querySelectorAll(".remote button[data-key]").forEach(b=>{
+  b.onclick = ()=> sendKey(b.dataset.key);
+});
+function sendKey(key){
+  if(!bridgeOk){ log("Connecte le pont local d'abord (onglet 🌉).", "err"); return; }
+  if(!ftvIp){ log("Renseigne l'IP du Fire TV.", "err"); return; }
+  fetch(bridgeBase + "/firetv/key", {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ip: ftvIp, key})
+  }).then(r=>r.json()).then(j=>{ if(!j.ok) log("Touche refusée : " + (j.error||"?"), "err"); })
+    .catch(e=>log("Erreur : " + e.message, "err"));
+}
+$("#ftvTextBtn").onclick = ()=>{
+  const t = $("#ftvText").value.trim(); if(!t) return;
+  if(!bridgeOk || !ftvIp){ log("Pont + IP Fire TV requis.", "err"); return; }
+  fetch(bridgeBase + "/firetv/text", {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ip: ftvIp, text: t})
+  }).then(r=>r.json()).then(j=>{ log(j.ok ? "Texte envoyé ✓" : "Échec : " + (j.error||"?"), j.ok ? "ok":"err"); });
+  $("#ftvText").value = "";
+};
+document.querySelectorAll("[data-app]").forEach(b=>{
+  b.onclick = ()=>{
+    if(!bridgeOk || !ftvIp){ log("Pont + IP Fire TV requis.", "err"); return; }
+    fetch(bridgeBase + "/firetv/app", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ip: ftvIp, package: b.dataset.app})
+    }).then(r=>r.json()).then(j=>{ log(j.ok ? b.textContent + " lancé ✓" : "Échec", j.ok ? "ok":"err"); });
+  };
+});
+
+/* ================= Alexa ================= */
+$("#alexaSendBtn").onclick = async ()=>{
+  const cmd = $("#alexaCmd").value.trim(); if(!cmd) return;
+  if(!bridgeOk){ $("#alexaResult").textContent = "⚠ Le pont local doit être connecté."; return; }
+  try{
+    const r = await fetch(bridgeBase + "/alexa/command", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({command: cmd})
+    });
+    const j = await r.json();
+    $("#alexaResult").textContent = j.ok ? "Commande transmise ✓" : "✗ " + (j.error || "refusé");
+  }catch(e){ $("#alexaResult").textContent = "✗ " + e.message; }
+};
+
+/* ================= AirPods ================= */
+function apRender(){
+  const st = JSON.parse(localStorage.getItem("hub_airpods") || "{}");
+  $("#apBattVal").textContent = st.battery ? st.battery + "%" : "—";
+  $("#apModeVal").textContent = st.mode || "—";
+  $("#apConnVal").textContent = st.detected ? "Détecté (BT)" : "Non détecté";
+}
+$("#apTryBtn").onclick = async ()=>{
+  if(!navigator.bluetooth){ log("Web Bluetooth non supporté ici.", "err"); return; }
+  try{
+    const d = await navigator.bluetooth.requestDevice({
+      filters: [{namePrefix: "AirPods"}],
+      optionalServices: ["battery_service","device_information"]
+    });
+    log("Vu : " + d.name + ". Apple bloque la connexion GATT navigateur — état enregistré en « détecté ».");
+    const st = JSON.parse(localStorage.getItem("hub_airpods") || "{}");
+    st.detected = true; st.name = d.name;
+    localStorage.setItem("hub_airpods", JSON.stringify(st));
+    apRender();
+  }catch(e){
+    if(e.name !== "NotFoundError") log("Erreur : " + e.message, "err");
+  }
+};
+$("#apSaveBtn").onclick = ()=>{
+  const st = JSON.parse(localStorage.getItem("hub_airpods") || "{}");
+  const b = parseInt($("#apBattery").value, 10);
+  if(!isNaN(b) && b >= 0 && b <= 100) st.battery = b;
+  if($("#apMode").value !== "—") st.mode = $("#apMode").value;
+  localStorage.setItem("hub_airpods", JSON.stringify(st));
+  $("#apBattery").value = "";
+  apRender(); log("État AirPods enregistré.", "ok");
+};
+apRender();
+
+/* ================= Init ================= */
+renderDevices();
+renderKpi();
+log("Hub prêt. " + (btOk ? "Web Bluetooth OK." : "Web Bluetooth absent (utilise Chrome/Edge)."));
+</script>
+</body>
+</html>
