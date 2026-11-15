@@ -3,31 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mon Espace Scolaire — Pronote, Atrium &amp; plus</title>
+<title>OpenTune — Lecteur de musique</title>
 <style>
   :root{
     --bg:#0b0e14; --panel:#131824; --panel2:#1a2130; --line:#242d40;
-    --txt:#e8edf7; --muted:#8b96ad; --acc:#1e88e5; --acc2:#00b8a9;
-    --ok:#2ecc71; --warn:#f39c12; --err:#e74c3c; --r:14px;
+    --txt:#e8edf7; --muted:#8b96ad; --acc:#1db954; --acc2:#0ea5a4;
+    --err:#e74c3c; --r:14px;
   }
   *{box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',system-ui,sans-serif;}
-  body{background:var(--bg); color:var(--txt); min-height:100vh;}
-  a{color:var(--acc);}
+  body{background:var(--bg); color:var(--txt); min-height:100vh; padding-bottom:110px;}
   header{
     padding:16px 22px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-    background:linear-gradient(135deg,#12253c,#0d1220); border-bottom:1px solid var(--line);
+    background:linear-gradient(135deg,#0e2a1c,#0d1220); border-bottom:1px solid var(--line);
     position:sticky; top:0; z-index:10;
   }
-  header h1{font-size:1.2rem;}
+  header h1{font-size:1.25rem; letter-spacing:.02em;}
+  header h1 span{color:var(--acc);}
   header .sub{color:var(--muted); font-size:.78rem;}
-  main{padding:20px 22px 60px; max-width:1100px; margin:0 auto;}
+  nav{display:flex; gap:6px; padding:12px 22px 0; flex-wrap:wrap;}
+  nav button{
+    background:var(--panel); color:var(--muted); border:1px solid var(--line);
+    padding:9px 16px; border-radius:10px; cursor:pointer; font-size:.88rem; transition:.15s;
+  }
+  nav button:hover{color:var(--txt); border-color:var(--acc);}
+  nav button.active{background:var(--acc); color:#fff; border-color:var(--acc);}
+  main{padding:20px 22px; max-width:1100px; margin:0 auto;}
+  section.tab{display:none;} section.tab.active{display:block;}
   .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:18px; margin-bottom:16px;}
   .card h2{font-size:1rem; margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
   .note{color:var(--muted); font-size:.82rem; line-height:1.55;}
   .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
   button.act{
     background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; border:none;
-    padding:10px 18px; border-radius:10px; cursor:pointer; font-size:.88rem; font-weight:600; transition:.15s;
+    padding:10px 18px; border-radius:10px; cursor:pointer; font-size:.88rem; font-weight:600;
   }
   button.act:hover{filter:brightness(1.12);}
   button.ghost{
@@ -35,251 +43,368 @@
     padding:9px 15px; border-radius:10px; cursor:pointer; font-size:.84rem;
   }
   button.ghost:hover{border-color:var(--acc);}
-  button.ghost.danger{border-color:var(--err); color:var(--err);}
-  input[type=text], input[type=url], input[type=date], input[type=password], select, textarea{
+  input[type=text]{
     background:#0d1320; border:1px solid var(--line); color:var(--txt);
-    padding:10px 13px; border-radius:10px; font-size:.9rem;
+    padding:11px 14px; border-radius:10px; font-size:.92rem; flex:1; min-width:200px;
   }
-  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--acc);}
-  textarea{width:100%; resize:vertical; font-family:inherit;}
+  input[type=text]:focus{outline:none; border-color:var(--acc);}
   .pill{font-size:.68rem; padding:2px 9px; border-radius:99px; background:#0d1320; border:1px solid var(--line); color:var(--muted);}
-  .pill.ok{color:var(--ok); border-color:var(--ok);}
-  /* Portails */
-  .portal-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px;}
-  .portal{
+  /* Grille de résultats */
+  .track-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px;}
+  .track{
     background:var(--panel2); border:1px solid var(--line); border-radius:var(--r);
-    padding:18px; display:flex; flex-direction:column; gap:10px; transition:.15s;
+    padding:12px; display:flex; flex-direction:column; gap:8px; transition:.15s;
   }
-  .portal:hover{border-color:var(--acc);}
-  .portal .logo{font-size:1.9rem;}
-  .portal .name{font-weight:700; font-size:1rem;}
-  .portal .desc{color:var(--muted); font-size:.76rem; line-height:1.45; flex:1;}
-  .portal .actions{display:flex; gap:8px; flex-wrap:wrap;}
-  .portal .actions button{flex:1; padding:8px 10px; font-size:.78rem;}
-  /* Visionneuse */
-  #viewer{display:none;}
-  #viewer .bar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;}
-  #viewer .url{flex:1; min-width:200px; background:#0d1320; border:1px solid var(--line); color:var(--muted);
-    padding:9px 13px; border-radius:10px; font-size:.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  #frameWrap{position:relative; border-radius:var(--r); overflow:hidden; border:1px solid var(--line); background:#fff; height:70vh;}
-  #portalFrame{width:100%; height:100%; border:none;}
-  #frameHint{
-    position:absolute; inset:auto 0 0 0; background:#0d1320ee; border-top:1px solid var(--line);
-    color:var(--muted); font-size:.75rem; padding:8px 14px; display:none;
+  .track:hover{border-color:var(--acc);}
+  .track.playing{border-color:var(--acc); box-shadow:0 0 0 1px var(--acc);}
+  .track img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px; background:#0d1320;}
+  .track .t{font-weight:700; font-size:.85rem; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
+  .track .a{color:var(--muted); font-size:.76rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .track .actions{display:flex; gap:6px;}
+  .track .actions button{flex:1; padding:7px 6px; font-size:.75rem;}
+  .mini{width:34px; height:34px; border-radius:50%; border:none; background:var(--acc); color:#fff;
+    cursor:pointer; font-size:.9rem; flex-shrink:0; display:flex; align-items:center; justify-content:center;}
+  .mini:hover{filter:brightness(1.15);}
+  .mini.ghosted{background:transparent; border:1px solid var(--line);}
+  .mini.faved{color:var(--warn); border-color:var(--warn);}
+  /* Lecteur */
+  #player{
+    position:fixed; left:0; right:0; bottom:0; z-index:20;
+    background:#0e1420f2; border-top:1px solid var(--line); backdrop-filter:blur(10px);
+    padding:12px 22px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
   }
-  .devoir{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px;}
-  .devoir .head{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:4px; flex-wrap:wrap;}
-  .devoir .desc{font-size:.86rem; white-space:pre-wrap;}
-  .devoir.done{opacity:.5;}
-  .check{display:flex; align-items:center; gap:7px; font-size:.8rem; color:var(--muted);}
-  footer{color:var(--muted); font-size:.72rem; text-align:center; padding:18px; line-height:1.7;}
+  #player img{width:56px; height:56px; border-radius:10px; object-fit:cover; background:#0d1320;}
+  #player .info{min-width:140px; max-width:220px;}
+  #player .info .t{font-weight:700; font-size:.88rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  #player .info .a{color:var(--muted); font-size:.76rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .controls{display:flex; align-items:center; gap:10px;}
+  .controls button{
+    width:42px; height:42px; border-radius:50%; border:1px solid var(--line);
+    background:transparent; color:var(--txt); cursor:pointer; font-size:1rem;
+  }
+  .controls button:hover{border-color:var(--acc);}
+  #playBtn{width:50px; height:50px; background:var(--acc); border:none; color:#fff; font-size:1.2rem;}
+  .seek{flex:1; min-width:180px; display:flex; align-items:center; gap:10px; font-size:.72rem; color:var(--muted);}
+  input[type=range]{flex:1; accent-color:var(--acc); cursor:pointer;}
+  #volRange{width:90px;}
+  .viz{display:flex; gap:3px; align-items:flex-end; height:26px;}
+  .viz span{width:4px; background:var(--acc); border-radius:2px; height:4px;}
+  .viz.on span{animation:bounce .9s ease-in-out infinite;}
+  .viz span:nth-child(2){animation-delay:.15s} .viz span:nth-child(3){animation-delay:.3s}
+  .viz span:nth-child(4){animation-delay:.45s} .viz span:nth-child(5){animation-delay:.6s}
+  @keyframes bounce{0%,100%{height:5px}50%{height:24px}}
+  footer{color:var(--muted); font-size:.72rem; text-align:center; padding:16px; line-height:1.7;}
 </style>
 </head>
 <body>
 
 <header>
-  <div style="font-size:1.5rem">🎒</div>
+  <div style="font-size:1.6rem">🎵</div>
   <div style="flex:1">
-    <h1>Mon Espace Scolaire</h1>
-    <div class="sub">Pronote · Atrium · ÉcoleDirecte · ENT — tout au même endroit, 100 % dans ton navigateur</div>
+    <h1>Open<span>Tune</span></h1>
+    <div class="sub">Cherche, écoute, organise — 100 % dans ton navigateur, aucun compte</div>
   </div>
-  <span class="pill ok">100 % frontend · aucune donnée envoyée</span>
+  <span class="pill ok">100 % frontend</span>
 </header>
 
+<nav id="nav">
+  <button data-tab="search" class="active">🔍 Rechercher</button>
+  <button data-tab="favs">❤️ Favoris</button>
+  <button data-tab="files">📁 Mes fichiers</button>
+  <button data-tab="queue">🎶 File d'attente</button>
+</nav>
+
 <main>
-
-  <!-- Portails -->
-  <div class="card">
-    <h2>🏫 Mes portails
-      <span class="row" style="margin-left:auto">
-        <button class="ghost" id="addPortalBtn">➕ Ajouter un portail</button>
-      </span>
-    </h2>
-    <div class="portal-grid" id="portalGrid"></div>
-  </div>
-
-  <!-- Visionneuse intégrée -->
-  <div class="card" id="viewer">
-    <div class="bar">
-      <b id="viewerName">—</b>
-      <span class="url" id="viewerUrl">—</span>
-      <button class="ghost" id="viewerClose">✕ Fermer</button>
-      <button class="act" id="viewerOpen" style="padding:8px 14px; font-size:.8rem">↗ Ouvrir dans un onglet</button>
+  <!-- Recherche -->
+  <section class="tab active" id="tab-search">
+    <div class="card">
+      <h2>🔍 Trouver un titre</h2>
+      <div class="row" style="margin-bottom:8px">
+        <input type="text" id="searchInput" placeholder="Artiste, titre, album… (Entrée pour chercher)">
+        <button class="act" id="searchBtn">Chercher</button>
+      </div>
+      <p class="note">Résultats via l'API publique iTunes : extraits de 30 s jouables immédiatement. Pour un titre complet, ajoute ton propre fichier dans 📁 Mes fichiers.</p>
     </div>
-    <div id="frameWrap">
-      <iframe id="portalFrame" referrerpolicy="no-referrer"></iframe>
-      <div id="frameHint">La page semble vide ? Ce portail bloque probablement l'intégration (X-Frame-Options). Utilise « Ouvrir dans un onglet » — c'est le cas le plus courant, aucun site externe ne peut forcer l'affichage.</div>
+    <div class="track-grid" id="results"></div>
+  </section>
+
+  <!-- Favoris -->
+  <section class="tab" id="tab-favs">
+    <div class="card">
+      <h2>❤️ Mes favoris <span class="pill" id="favCount">0</span></h2>
+      <p class="note" style="margin-bottom:12px">Stockés dans ton navigateur (localStorage).</p>
+      <div class="track-grid" id="favGrid"></div>
     </div>
-  </div>
+  </section>
 
-  <!-- Devoirs locaux -->
-  <div class="card">
-    <h2>📝 Mon agenda de devoirs <span class="pill" id="hwPill">0 à faire</span></h2>
-    <p class="note" style="margin-bottom:12px">Suivi local (stocké dans ton navigateur) : ajoute tes devoirs depuis Pronote ou Atrium et coche-les quand c'est fait.</p>
-    <div class="row" style="margin-bottom:14px">
-      <input type="text" id="hwMatiere" placeholder="Matière" style="width:150px">
-      <input type="date" id="hwDate" style="width:150px">
-      <input type="text" id="hwDesc" placeholder="Description du devoir" style="flex:1; min-width:200px">
-      <button class="act" id="hwAddBtn" style="padding:10px 16px">Ajouter</button>
+  <!-- Fichiers locaux -->
+  <section class="tab" id="tab-files">
+    <div class="card">
+      <h2>📁 Mes fichiers audio</h2>
+      <p class="note" style="margin-bottom:12px">Lecture complète de tes fichiers (mp3, m4a, wav, ogg, flac…). Rien n'est envoyé nulle part : le fichier reste dans ton appareil.</p>
+      <div class="row">
+        <button class="act" id="fileBtn">➕ Choisir des fichiers</button>
+        <input type="file" id="fileInput" accept="audio/*" multiple style="display:none">
+      </div>
     </div>
-    <div id="hwList"></div>
-  </div>
+    <div class="track-grid" id="fileGrid"></div>
+  </section>
 
-  <!-- Infos -->
-  <div class="card">
-    <h2>ℹ️ Pourquoi pas de connexion automatique ?</h2>
-    <p class="note">
-      Pronote (Index-Éducation), Atrium, ÉcoleDirecte et les ENT <b>interdisent techniquement</b> à un site externe de lire
-      tes données (sécurité CORS + authentification). C'est une protection de ton compte : aucun site — y compris celui-ci —
-      ne peut aspirer tes notes sans passer par leurs apps officielles ou un serveur intermédiaire, ce que tu as exclu.
-      Cette page fait donc l'inverse : elle réunit <b>ton lycée au même endroit</b>, sans jamais voir ni stocker tes mots de passe —
-      tu te connectes directement sur les sites officiels.
-    </p>
-  </div>
-
+  <!-- File d'attente -->
+  <section class="tab" id="tab-queue">
+    <div class="card">
+      <h2>🎶 File d'attente <span class="pill" id="qCount">0</span>
+        <button class="ghost" id="qClearBtn" style="margin-left:auto">Vider</button>
+      </h2>
+      <div id="queueList"></div>
+    </div>
+  </section>
 </main>
 
+<!-- Lecteur -->
+<div id="player">
+  <img id="pArt" src="" alt="" onerror="this.style.visibility='hidden'">
+  <div class="info">
+    <div class="t" id="pTitle">—</div>
+    <div class="a" id="pArtist">—</div>
+  </div>
+  <div class="viz" id="viz"><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="controls">
+    <button id="prevBtn" title="Précédent">⏮</button>
+    <button id="playBtn" title="Lecture / Pause">▶</button>
+    <button id="nextBtn" title="Suivant">⏭</button>
+  </div>
+  <div class="seek">
+    <span id="tCur">0:00</span>
+    <input type="range" id="seekRange" min="0" max="1000" value="0">
+    <span id="tDur">0:00</span>
+  </div>
+  <div class="seek" style="min-width:auto">
+    🔊 <input type="range" id="volRange" min="0" max="100" value="90">
+  </div>
+</div>
+
 <footer>
-  Mon Espace Scolaire — 100 % frontend, aucune donnée ne quitte ton appareil (localStorage uniquement).<br>
-  Pronote © Index-Éducation · Atrium © Région Île-de-France · ÉcoleDirecte © Aplon — marques de leurs propriétaires.
+  OpenTune — fichier unique, aucune donnée envoyée : recherches via l'API publique iTunes (Apple), fichiers locaux jamais transmis.<br>
+  Extraits de 30 s fournis par Apple Music. Espace de touche = lecture/pause.
 </footer>
 
 <script>
 "use strict";
-const LS_PORTALS = "es_portals_v1", LS_HW = "es_hw_v1";
 const $ = s => document.querySelector(s);
 function esc(s){ return String(s ?? "").replace(/[<>&"]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c])); }
 
-/* ================= Portails ================= */
-const DEFAULTS = [
-  { id:"pronote", name:"PRONOTE", logo:"📘", url:"", desc:"Notes, devoirs, emploi du temps, absences. Colle l'adresse de ton établisement (eleve.html) dans « Modifier ».", builtin:true },
-  { id:"atrium", name:"Atrium", logo:"🏛️", url:"https://www.atrium.fr", desc:"Portail des lycées d'Île-de-France : notes, cahier de textes, messagerie.", builtin:true },
-  { id:"ecoledirecte", name:"ÉcoleDirecte", logo:"🌿", url:"https://www.ecoledirecte.com", desc:"Espace élèves et familles : notes, devoirs, vie scolaire.", builtin:true },
-  { id:"ent", name:"Mon ENT", logo:"🎓", url:"", desc:"Ton portail ENT régional ou départemental. Ajoute son adresse via « Modifier ».", builtin:true }
-];
-let portals = JSON.parse(localStorage.getItem(LS_PORTALS) || "null") || DEFAULTS;
-
-function savePortals(){ localStorage.setItem(LS_PORTALS, JSON.stringify(portals)); }
-function portalUrl(p){ return p.url && p.url.startsWith("http") ? p.url : null; }
-
-function renderPortals(){
-  $("#portalGrid").innerHTML = portals.map(p=>{
-    const has = portalUrl(p);
-    return `<div class="portal">
-      <div class="logo">${p.logo || "🔗"}</div>
-      <div class="name">${esc(p.name)}</div>
-      <div class="desc">${esc(p.desc || "")}${has ? "" : '<br><span style="color:var(--warn)">⚠ Adresse à renseigner</span>'}</div>
-      <div class="actions">
-        <button class="act" onclick='openPortal("${esc(p.id)}")' ${has ? "" : "disabled"}>Intégrer</button>
-        <button class="ghost" onclick='openTab("${esc(p.id)}")' ${has ? "" : "disabled"}>↗ Onglet</button>
-        <button class="ghost" onclick='editPortal("${esc(p.id)}")'>✏️</button>
-        ${p.builtin ? "" : `<button class="ghost danger" onclick='removePortal("${esc(p.id)}")'>🗑</button>`}
-      </div>
-    </div>`;
-  }).join("");
+/* ================= Onglets ================= */
+document.querySelectorAll("#nav button").forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll("#nav button").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll("section.tab").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    $("#tab-"+b.dataset.tab).classList.add("active");
+  };
+});
+function switchTab(name){
+  document.querySelectorAll("#nav button").forEach(x=>x.classList.toggle("active", x.dataset.tab===name));
+  document.querySelectorAll("section.tab").forEach(x=>x.classList.toggle("active", x.id==="tab-"+name));
 }
 
-function findPortal(id){ return portals.find(p=>p.id === id); }
-window.openTab = id=>{
-  const p = findPortal(id);
-  if(p && portalUrl(p)) window.open(p.url, "_blank", "noopener");
-};
-window.openPortal = id=>{
-  const p = findPortal(id);
-  if(!p || !portalUrl(p)) return;
-  $("#viewer").style.display = "block";
-  $("#viewerName").textContent = p.name;
-  $("#viewerUrl").textContent = p.url;
-  $("#viewerOpen").onclick = ()=>window.open(p.url, "_blank", "noopener");
-  const hint = $("#frameHint");
-  hint.style.display = "none";
-  const f = $("#portalFrame");
-  f.src = p.url;
-  clearTimeout(f._t);
-  f._t = setTimeout(()=>{ hint.style.display = "block"; }, 4000);
-  f.onload = ()=>{ hint.style.display = "none"; };
-  $("#viewer").scrollIntoView({behavior:"smooth", block:"start"});
-};
-$("#viewerClose").onclick = ()=>{
-  $("#viewer").style.display = "none";
-  $("#portalFrame").src = "about:blank";
-};
+/* ================= État ================= */
+let queue = [];          // {id, title, artist, art, src, local}
+let current = -1;
+let favs = JSON.parse(localStorage.getItem("ot_favs_v1") || "[]");
+let files = JSON.parse(localStorage.getItem("ot_files_v1") || "[]");
+const audio = new Audio();
+audio.volume = 0.9;
 
-window.editPortal = id=>{
-  const p = findPortal(id);
-  if(!p) return;
-  const url = prompt("Adresse du portail (https://…) :", p.url || "");
-  if(url === null) return;
-  p.url = url.trim();
-  if(!p.builtin){
-    const name = prompt("Nom :", p.name);
-    if(name) p.name = name.trim();
+function saveFavs(){ localStorage.setItem("ot_favs_v1", JSON.stringify(favs)); }
+function saveFiles(){ localStorage.setItem("ot_files_v1", JSON.stringify(files)); }
+function favKey(t){ return t.title + "|" + t.artist; }
+function isFav(t){ return favs.some(f=>favKey(f) === favKey(t)); }
+
+/* ================= Recherche iTunes ================= */
+async function doSearch(){
+  const term = $("#searchInput").value.trim();
+  if(!term) return;
+  $("#results").innerHTML = '<div class="note">Recherche…</div>';
+  try{
+    const r = await fetch("https://itunes.apple.com/search?term=" + encodeURIComponent(term) + "&media=music&limit=30");
+    const j = await r.json();
+    const tracks = (j.results || []).filter(t=>t.previewUrl);
+    if(!tracks.length){ $("#results").innerHTML = '<div class="note">Aucun résultat avec extrait disponible.</div>'; return; }
+    $("#results").innerHTML = tracks.map(t=>{
+      const item = { title:t.trackName, artist:t.artistName, art:(t.artworkUrl100||"").replace("100x100","300x300"), src:t.previewUrl, local:false };
+      return trackCard(item, "search");
+    }).join("");
+    bindCards("search");
+  }catch(e){
+    $("#results").innerHTML = '<div class="note">Erreur de recherche : ' + esc(e.message) + '</div>';
   }
-  savePortals(); renderPortals();
-};
-window.removePortal = id=>{
-  portals = portals.filter(p=>p.id !== id);
-  savePortals(); renderPortals();
-};
-$("#addPortalBtn").onclick = ()=>{
-  const name = prompt("Nom du portail (ex : ENT Nancy, Toutatice…) :");
-  if(!name) return;
-  const url = prompt("Adresse (https://…) :", "https://") || "";
-  portals.push({ id:"p" + Date.now(), name:name.trim(), logo:"🔗", url:url.trim(), desc:"Portail personnalisé." });
-  savePortals(); renderPortals();
-};
+}
+$("#searchBtn").onclick = doSearch;
+$("#searchInput").addEventListener("keydown", e=>{ if(e.key === "Enter") doSearch(); });
 
-/* ================= Agenda de devoirs ================= */
-let homework = JSON.parse(localStorage.getItem(LS_HW) || "[]");
-function saveHw(){ localStorage.setItem(LS_HW, JSON.stringify(homework)); }
-const MOIS = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
-const JOURS = ["dim.","lun.","mar.","mer.","jeu.","ven.","sam."];
-function fdate(iso){
-  if(!iso) return "sans date";
-  const d = new Date(iso + "T12:00:00");
-  return JOURS[d.getDay()] + " " + d.getDate() + " " + MOIS[d.getMonth()];
+function trackCard(t, ctx, idx){
+  const faved = isFav(t);
+  return `<div class="track" data-ctx="${ctx}" data-idx="${idx}">
+    <img src="${esc(t.art)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+    <div class="t">${esc(t.title)}</div>
+    <div class="a">${esc(t.artist)}</div>
+    <div class="actions">
+      <button class="mini" onclick='playFrom("${ctx}", ${idx})'>▶</button>
+      <button class="mini ghosted ${faved ? "faved" : ""}" onclick='toggleFav("${ctx}", ${idx})' title="Favori">♥</button>
+      <button class="mini ghosted" onclick='addQueue("${ctx}", ${idx})' title="Ajouter à la file">＋</button>
+    </div>
+  </div>`;
 }
-function renderHw(){
-  const todo = homework.filter(h=>!h.done).length;
-  $("#hwPill").textContent = todo + " à faire";
-  const list = [...homework].sort((a,b)=>(a.done - b.done) || (a.date||"9999").localeCompare(b.date||"9999"));
-  $("#hwList").innerHTML = list.length ? list.map(h=>`
-    <div class="devoir ${h.done ? "done" : ""}">
-      <div class="head">
-        <b>${esc(h.matiere || "—")}</b>
-        <span class="row">
-          <span class="pill">${fdate(h.date)}</span>
-          <label class="check"><input type="checkbox" onchange="toggleHw('${h.id}')" ${h.done ? "checked" : ""}> Fait</label>
-          <button class="ghost danger" style="padding:4px 10px; font-size:.72rem" onclick="removeHw('${h.id}')">🗑</button>
-        </span>
-      </div>
-      <div class="desc">${esc(h.desc)}</div>
-    </div>`).join("") : '<div class="note">Aucun devoir enregistré. 🎉</div>';
+function getStore(ctx){
+  if(ctx === "search") return window._searchResults || [];
+  if(ctx === "favs") return favs;
+  if(ctx === "files") return files;
+  return queue;
 }
-window.toggleHw = id=>{
-  const h = homework.find(x=>x.id === id);
-  if(h){ h.done = !h.done; saveHw(); renderHw(); }
+window.playFrom = (ctx, idx)=>{
+  const t = getStore(ctx)[idx];
+  if(!t) return;
+  if(ctx === "queue"){ playIndex(idx); return; }
+  queue.push({...t});
+  playIndex(queue.length - 1);
+  renderQueue();
 };
-window.removeHw = id=>{
-  homework = homework.filter(x=>x.id !== id);
-  saveHw(); renderHw();
+window.addQueue = (ctx, idx)=>{
+  const t = getStore(ctx)[idx];
+  if(!t) return;
+  queue.push({...t});
+  renderQueue();
+  switchTab("queue");
 };
-$("#hwAddBtn").onclick = ()=>{
-  const desc = $("#hwDesc").value.trim();
-  if(!desc) return;
-  homework.push({
-    id: "h" + Date.now(),
-    matiere: $("#hwMatiere").value.trim(),
-    date: $("#hwDate").value,
-    desc, done: false
+window.toggleFav = (ctx, idx)=>{
+  const t = getStore(ctx)[idx];
+  if(!t) return;
+  const k = favKey(t);
+  const i = favs.findIndex(f=>favKey(f) === k);
+  if(i >= 0) favs.splice(i,1); else favs.push({...t});
+  saveFavs(); renderFavs();
+  document.querySelectorAll(".track").forEach(card=>{
+    const c = getStore(card.dataset.ctx);
+    const item = c && c[card.dataset.idx];
+    if(item) card.querySelector(".mini.ghosted").classList.toggle("faved", isFav(item));
   });
-  $("#hwMatiere").value = ""; $("#hwDesc").value = ""; $("#hwDate").value = "";
-  saveHw(); renderHw();
 };
+function bindCards(ctx){
+  window._searchResults = window._searchResults || [];
+  document.querySelectorAll(`.track[data-ctx="${ctx}"]`).forEach(card=>{
+    card._item = getStore(ctx)[card.dataset.idx];
+  });
+}
+
+/* ================= Fichiers locaux ================= */
+$("#fileBtn").onclick = ()=>$("#fileInput").click();
+$("#fileInput").onchange = e=>{
+  for(const f of e.target.files){
+    files.push({ title:f.name.replace(/\.[^.]+$/,""), artist:"Fichier local", art:"", src:URL.createObjectURL(f), local:true });
+  }
+  saveFiles(); renderFiles();
+  e.target.value = "";
+};
+function renderFiles(){
+  $("#fileGrid").innerHTML = files.length
+    ? files.map((t,i)=>trackCard(t, "files", i)).join("")
+    : '<div class="note">Aucun fichier. Clique « Choisir des fichiers ».</div>';
+}
+
+/* ================= Favoris ================= */
+function renderFavs(){
+  $("#favCount").textContent = favs.length;
+  $("#favGrid").innerHTML = favs.length
+    ? favs.map((t,i)=>trackCard(t, "favs", i)).join("")
+    : '<div class="note">Aucun favori. Clique le ♥ sur un titre.</div>';
+}
+
+/* ================= File d'attente ================= */
+function renderQueue(){
+  $("#qCount").textContent = queue.length;
+  $("#queueList").innerHTML = queue.length ? queue.map((t,i)=>`
+    <div class="devoir" style="display:flex; align-items:center; gap:12px; ${i === current ? "border-color:var(--acc)" : ""}">
+      <span class="note" style="min-width:22px">${i+1}</span>
+      <div style="flex:1">
+        <b style="font-size:.88rem">${esc(t.title)}</b>
+        <div class="note">${esc(t.artist)}${t.local ? " · 📁 local" : " · extrait 30 s"}</div>
+      </div>
+      <button class="mini" onclick='playIndex(${i})'>▶</button>
+      <button class="mini ghosted" onclick='removeQueue(${i})'>✕</button>
+    </div>`).join("") : '<div class="note">File vide. Ajoute des titres avec ＋ ou ▶.</div>';
+}
+window.removeQueue = i=>{
+  if(i === current){ audio.pause(); }
+  queue.splice(i,1);
+  if(i < current) current--;
+  else if(i === current){ current = Math.min(current, queue.length-1); if(current >= 0) playIndex(current); else stopAll(); }
+  renderQueue();
+};
+$("#qClearBtn").onclick = ()=>{ audio.pause(); queue = []; current = -1; stopAll(); renderQueue(); };
+
+/* ================= Lecture ================= */
+function fmt(s){
+  if(!isFinite(s)) return "0:00";
+  const m = Math.floor(s/60), sec = Math.floor(s%60);
+  return m + ":" + String(sec).padStart(2,"0");
+}
+function playIndex(i){
+  if(i < 0 || i >= queue.length) return;
+  current = i;
+  const t = queue[i];
+  audio.src = t.src;
+  audio.play().catch(()=>{});
+  $("#pTitle").textContent = t.title;
+  $("#pArtist").textContent = t.artist;
+  const art = $("#pArt");
+  if(t.art){ art.src = t.art; art.style.visibility = "visible"; } else art.style.visibility = "hidden";
+  renderQueue();
+  markPlaying();
+}
+function markPlaying(){
+  document.querySelectorAll(".track").forEach(card=>{
+    card.classList.remove("playing");
+  });
+}
+function stopAll(){
+  $("#pTitle").textContent = "—"; $("#pArtist").textContent = "—";
+  $("#playBtn").textContent = "▶";
+  $("#viz").classList.remove("on");
+}
+$("#playBtn").onclick = ()=>{
+  if(!audio.src){ if(queue.length) playIndex(0); return; }
+  if(audio.paused) audio.play().catch(()=>{}); else audio.pause();
+};
+$("#nextBtn").onclick = ()=>playIndex((current+1) % Math.max(queue.length,1));
+$("#prevBtn").onclick = ()=>{
+  if(audio.currentTime > 3){ audio.currentTime = 0; return; }
+  playIndex((current-1+queue.length) % Math.max(queue.length,1));
+};
+audio.onplay = ()=>{ $("#playBtn").textContent = "⏸"; $("#viz").classList.add("on"); };
+audio.onpause = ()=>{ $("#playBtn").textContent = "▶"; $("#viz").classList.remove("on"); };
+audio.onended = ()=>{ if(queue.length) playIndex((current+1) % queue.length); };
+audio.ontimeupdate = ()=>{
+  $("#tCur").textContent = fmt(audio.currentTime);
+  if(audio.duration && isFinite(audio.duration)){
+    $("#tDur").textContent = fmt(audio.duration);
+    $("#seekRange").value = Math.round(audio.currentTime / audio.duration * 1000);
+  }
+};
+$("#seekRange").oninput = e=>{
+  if(audio.duration && isFinite(audio.duration)) audio.currentTime = e.target.value / 1000 * audio.duration;
+};
+$("#volRange").oninput = e=>{ audio.volume = e.target.value / 100; };
+document.addEventListener("keydown", e=>{
+  if(e.code === "Space" && !["INPUT","TEXTAREA"].includes(document.activeElement.tagName)){
+    e.preventDefault(); $("#playBtn").click();
+  }
+});
 
 /* ================= Init ================= */
-renderPortals();
-renderHw();
+renderFavs();
+renderFiles();
+renderQueue();
 </script>
 </body>
 </html>
