@@ -3,200 +3,230 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OpenTune — Musique illimitée</title>
+<title>OpenTune — Musique</title>
 <style>
   :root{
-    --bg:#0b0e14; --panel:#131824; --panel2:#1a2130; --line:#242d40;
-    --txt:#e8edf7; --muted:#8b96ad; --acc:#cc0fe0; --acc2:#7c4dff;
-    --err:#e74c3c; --r:14px;
+    --bg:#121212; --sidebar:#000; --card:#181818; --card-hover:#282828;
+    --txt:#fff; --muted:#b3b3b3; --acc:#1db954; --err:#e74c3c;
   }
   *{box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',system-ui,sans-serif;}
-  body{background:var(--bg); color:var(--txt); min-height:100vh; padding-bottom:110px;}
-  header{
-    padding:16px 22px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-    background:linear-gradient(135deg,#2a0e33,#0d1220); border-bottom:1px solid var(--line);
-    position:sticky; top:0; z-index:10;
+  body{background:var(--bg); color:var(--txt); height:100vh; overflow:hidden;}
+  a{color:var(--muted);}
+  ::-webkit-scrollbar{width:10px; height:10px;}
+  ::-webkit-scrollbar-thumb{background:#3e3e3e; border-radius:5px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+
+  .shell{display:flex; height:100vh;}
+
+  /* ---------- Sidebar ---------- */
+  aside{
+    width:230px; min-width:230px; background:var(--sidebar); padding:16px 10px;
+    display:flex; flex-direction:column; gap:6px; overflow-y:auto;
   }
-  header h1{font-size:1.25rem; letter-spacing:.02em;}
-  header h1 span{color:var(--acc);}
-  header .sub{color:var(--muted); font-size:.78rem;}
-  nav{display:flex; gap:6px; padding:12px 22px 0; flex-wrap:wrap;}
-  nav button{
-    background:var(--panel); color:var(--muted); border:1px solid var(--line);
-    padding:9px 16px; border-radius:10px; cursor:pointer; font-size:.88rem; transition:.15s;
+  .logo{display:flex; align-items:center; gap:10px; padding:10px 12px 18px; font-size:1.25rem; font-weight:800; letter-spacing:-.02em;}
+  .logo .dot{width:32px; height:32px; border-radius:50%; background:var(--acc); display:flex; align-items:center; justify-content:center; font-size:1rem;}
+  .snav{
+    display:flex; align-items:center; gap:16px; padding:10px 12px; border-radius:8px;
+    color:var(--muted); cursor:pointer; font-size:.92rem; font-weight:600; border:none; background:transparent; width:100%; text-align:left;
   }
-  nav button:hover{color:var(--txt); border-color:var(--acc);}
-  nav button.active{background:var(--acc); color:#fff; border-color:var(--acc);}
-  main{padding:20px 22px; max-width:1100px; margin:0 auto;}
-  section.tab{display:none;} section.tab.active{display:block;}
-  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:18px; margin-bottom:16px;}
-  .card h2{font-size:1rem; margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .snav:hover{color:var(--txt);}
+  .snav.active{color:var(--txt);}
+  .snav .ic{font-size:1.15rem; width:22px; text-align:center;}
+  .lib{border-top:1px solid #232323; margin-top:10px; padding-top:12px;}
+  .lib .title{color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; padding:0 12px 6px;}
+  .snav .count{margin-left:auto; font-size:.7rem; color:#7a7a7a;}
+
+  /* ---------- Contenu ---------- */
+  .content{flex:1; overflow-y:auto; position:relative; background:linear-gradient(#1f1f1f, var(--bg) 240px);}
+  .topbar{
+    position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:14px;
+    padding:14px 24px; background:#121212cc; backdrop-filter:blur(12px);
+  }
+  .searchbox{display:flex; align-items:center; gap:8px; background:#242424; border-radius:99px; padding:9px 18px; flex:1; max-width:480px;}
+  .searchbox input{
+    flex:1; background:transparent; border:none; color:var(--txt); font-size:.9rem; outline:none;
+  }
+  .searchbox input::placeholder{color:#8a8a8a;}
+  .topbar .badge{font-size:.7rem; color:var(--muted); border:1px solid #333; border-radius:99px; padding:3px 10px; margin-left:auto; white-space:nowrap;}
+  .topbar .badge.on{color:var(--acc); border-color:var(--acc);}
+
+  main{padding:8px 24px 40px;}
+  .view{display:none;} .view.active{display:block;}
+  .greet{font-size:1.9rem; font-weight:800; margin:14px 0 20px; letter-spacing:-.02em;}
+  h2.sec{font-size:1.25rem; font-weight:700; margin:26px 0 14px; letter-spacing:-.01em;}
+  .row-cards{display:flex; gap:16px; overflow-x:auto; padding-bottom:8px;}
+  .row-cards .tcard{min-width:170px; max-width:170px;}
+  .grid-cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:16px;}
+
+  .tcard{
+    background:var(--card); border-radius:10px; padding:14px; position:relative;
+    transition:background .2s; cursor:pointer;
+  }
+  .tcard:hover{background:var(--card-hover);}
+  .tcard img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; background:#333; display:block;}
+  .tcard .t{font-weight:700; font-size:.9rem; margin-top:10px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
+  .tcard .a{color:var(--muted); font-size:.78rem; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .tcard .tag{font-size:.64rem; color:var(--muted); background:#2a2a2a; border-radius:99px; padding:2px 8px; display:inline-block; margin-top:8px;}
+  .tcard .tag.full{color:#fff; background:var(--acc);}
+  .playfab{
+    position:absolute; right:16px; bottom:74px; width:44px; height:44px; border-radius:50%;
+    background:var(--acc); color:#fff; border:none; font-size:1.05rem; cursor:pointer;
+    opacity:0; transform:translateY(8px); transition:.2s; box-shadow:0 8px 16px #0009;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .tcard:hover .playfab{opacity:1; transform:translateY(0);}
+  .playfab:hover{transform:scale(1.06) !important;}
+  .cardbtns{display:flex; gap:6px; margin-top:10px;}
+  .cardbtns button{
+    flex:1; background:transparent; border:1px solid #3a3a3a; color:var(--muted);
+    border-radius:99px; padding:6px 4px; font-size:.72rem; cursor:pointer;
+  }
+  .cardbtns button:hover{color:var(--txt); border-color:#666;}
+  .cardbtns button.faved{color:var(--acc); border-color:var(--acc);}
+  .empty{color:var(--muted); font-size:.85rem; padding:20px 0;}
   .note{color:var(--muted); font-size:.82rem; line-height:1.55;}
-  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
-  button.act{
-    background:linear-gradient(135deg,var(--acc),var(--acc2)); color:#fff; border:none;
-    padding:10px 18px; border-radius:10px; cursor:pointer; font-size:.88rem; font-weight:600;
-  }
-  button.act:hover{filter:brightness(1.12);}
-  button.ghost{
-    background:transparent; color:var(--txt); border:1px solid var(--line);
-    padding:9px 15px; border-radius:10px; cursor:pointer; font-size:.84rem;
-  }
-  button.ghost:hover{border-color:var(--acc);}
-  input[type=text]{
-    background:#0d1320; border:1px solid var(--line); color:var(--txt);
-    padding:11px 14px; border-radius:10px; font-size:.92rem; flex:1; min-width:200px;
-  }
-  input[type=text]:focus{outline:none; border-color:var(--acc);}
-  select{background:#0d1320; border:1px solid var(--line); color:var(--txt); padding:10px 12px; border-radius:10px; font-size:.86rem;}
-  .pill{font-size:.68rem; padding:2px 9px; border-radius:99px; background:#0d1320; border:1px solid var(--line); color:var(--muted);}
-  .pill.full{color:var(--acc); border-color:var(--acc);}
-  .track-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px;}
-  .track{
-    background:var(--panel2); border:1px solid var(--line); border-radius:var(--r);
-    padding:12px; display:flex; flex-direction:column; gap:8px; transition:.15s;
-  }
-  .track:hover{border-color:var(--acc);}
-  .track img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px; background:#0d1320;}
-  .track .t{font-weight:700; font-size:.85rem; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
-  .track .a{color:var(--muted); font-size:.76rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .track .actions{display:flex; gap:6px;}
-  .track .actions button{flex:1; padding:7px 6px; font-size:.75rem;}
-  .mini{width:34px; height:34px; border-radius:50%; border:none; background:var(--acc); color:#fff;
-    cursor:pointer; font-size:.9rem; flex-shrink:0; display:flex; align-items:center; justify-content:center;}
-  .mini:hover{filter:brightness(1.15);}
-  .mini.ghosted{background:transparent; border:1px solid var(--line);}
-  .mini.faved{color:var(--acc); border-color:var(--acc);}
+
+  /* ---------- Player ---------- */
   #player{
-    position:fixed; left:0; right:0; bottom:0; z-index:20;
-    background:#12081af2; border-top:1px solid var(--line); backdrop-filter:blur(10px);
-    padding:12px 22px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    position:fixed; left:0; right:0; bottom:0; height:84px; z-index:30;
+    background:#181818; border-top:1px solid #282828;
+    display:flex; align-items:center; padding:0 16px; gap:14px;
   }
-  #player img{width:56px; height:56px; border-radius:10px; object-fit:cover; background:#0d1320;}
-  #player .info{min-width:140px; max-width:220px;}
-  #player .info .t{font-weight:700; font-size:.88rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  #player .info .a{color:var(--muted); font-size:.76rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .controls{display:flex; align-items:center; gap:10px;}
+  #player .np{display:flex; align-items:center; gap:12px; width:260px; min-width:180px;}
+  #player .np img{width:52px; height:52px; border-radius:6px; object-fit:cover; background:#333;}
+  #player .np .t{font-size:.85rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  #player .np .a{font-size:.72rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  #player .center{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:160px;}
+  .controls{display:flex; align-items:center; gap:18px;}
   .controls button{
-    width:42px; height:42px; border-radius:50%; border:1px solid var(--line);
-    background:transparent; color:var(--txt); cursor:pointer; font-size:1rem;
+    background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:1rem;
+    display:flex; align-items:center; justify-content:center;
   }
-  .controls button:hover{border-color:var(--acc);}
-  #playBtn{width:50px; height:50px; background:var(--acc); border:none; color:#fff; font-size:1.2rem;}
-  .seek{flex:1; min-width:180px; display:flex; align-items:center; gap:10px; font-size:.72rem; color:var(--muted);}
-  input[type=range]{flex:1; accent-color:var(--acc); cursor:pointer;}
-  #volRange{width:90px;}
-  .viz{display:flex; gap:3px; align-items:flex-end; height:26px;}
-  .viz span{width:4px; background:var(--acc); border-radius:2px; height:4px;}
+  .controls button:hover{color:var(--txt);}
+  #playBtn{
+    width:38px; height:38px; border-radius:50%; background:var(--txt); color:#000;
+    font-size:1rem; border:none;
+  }
+  #playBtn:hover{transform:scale(1.05);}
+  .seek{display:flex; align-items:center; gap:8px; width:100%; max-width:560px; font-size:.7rem; color:var(--muted);}
+  input[type=range]{flex:1; -webkit-appearance:none; appearance:none; height:4px; border-radius:2px; background:#4d4d4d; cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:12px; height:12px; border-radius:50%; background:var(--txt); opacity:0; transition:.15s;}
+  input[type=range]:hover::-webkit-slider-thumb{opacity:1;}
+  input[type=range]:hover{background:var(--acc);}
+  #volRange{width:100px; max-width:100px;}
+  #player .right{display:flex; align-items:center; gap:8px; width:200px; justify-content:flex-end; color:var(--muted); font-size:.9rem;}
+  .viz{display:flex; gap:3px; align-items:flex-end; height:20px;}
+  .viz span{width:3px; background:var(--acc); border-radius:2px; height:4px;}
   .viz.on span{animation:bounce .9s ease-in-out infinite;}
   .viz span:nth-child(2){animation-delay:.15s} .viz span:nth-child(3){animation-delay:.3s}
   .viz span:nth-child(4){animation-delay:.45s} .viz span:nth-child(5){animation-delay:.6s}
-  @keyframes bounce{0%,100%{height:5px}50%{height:24px}}
-  footer{color:var(--muted); font-size:.72rem; text-align:center; padding:16px; line-height:1.7;}
+  @keyframes bounce{0%,100%{height:4px}50%{height:20px}}
+
+  @media (max-width:800px){
+    aside{display:none;}
+    #player .np{width:auto;} #player .right{display:none;}
+  }
 </style>
 </head>
 <body>
 
-<header>
-  <div style="font-size:1.6rem">🎵</div>
-  <div style="flex:1">
-    <h1>Open<span>Tune</span></h1>
-    <div class="sub">Des millions de titres complets et gratuits via Audius — plus tes propres fichiers</div>
-  </div>
-  <span class="pill" id="apiBadge">Connexion à Audius…</span>
-</header>
+<div class="shell">
+  <aside>
+    <div class="logo"><span class="dot">🎵</span> OpenTune</div>
+    <button class="snav active" data-view="home"><span class="ic">🏠</span> Accueil</button>
+    <button class="snav" data-view="search"><span class="ic">🔍</span> Rechercher</button>
+    <button class="snav" data-view="trending"><span class="ic">🔥</span> Tendances</button>
+    <div class="lib">
+      <div class="title">Bibliothèque</div>
+      <button class="snav" data-view="favs"><span class="ic">❤️</span> Favoris <span class="count" id="favCount">0</span></button>
+      <button class="snav" data-view="files"><span class="ic">📁</span> Mes fichiers</button>
+      <button class="snav" data-view="queue"><span class="ic">🎶</span> File d'attente <span class="count" id="qCount">0</span></button>
+    </div>
+  </aside>
 
-<nav id="nav">
-  <button data-tab="search" class="active">🔍 Rechercher</button>
-  <button data-tab="trending">🔥 Tendances</button>
-  <button data-tab="favs">❤️ Favoris</button>
-  <button data-tab="files">📁 Mes fichiers</button>
-  <button data-tab="queue">🎶 File d'attente</button>
-</nav>
-
-<main>
-  <!-- Recherche -->
-  <section class="tab active" id="tab-search">
-    <div class="card">
-      <h2>🔍 Trouver un titre</h2>
-      <div class="row" style="margin-bottom:8px">
-        <input type="text" id="searchInput" placeholder="Artiste, titre… (Entrée pour chercher)">
-        <button class="act" id="searchBtn">Chercher</button>
+  <div class="content" id="content">
+    <div class="topbar">
+      <div class="searchbox">
+        <span>🔍</span>
+        <input type="text" id="searchInput" placeholder="Que veux-tu écouter ?">
       </div>
-      <p class="note">🎧 <b>Audius</b> : titres <b>complets et gratuits</b> (musique indépendante mise en ligne par les artistes). Si Audius est indisponible, les résultats passent automatiquement en extraits 30 s via iTunes.</p>
+      <span class="badge" id="apiBadge">Connexion à Audius…</span>
     </div>
-    <div class="track-grid" id="results"></div>
-  </section>
 
-  <!-- Tendances -->
-  <section class="tab" id="tab-trending">
-    <div class="card">
-      <h2>🔥 Tendances du moment sur Audius</h2>
-      <p class="note" style="margin-bottom:12px">Les titres les plus écoutés, en intégralité. Clique ▶.</p>
-    </div>
-    <div class="track-grid" id="trendGrid"></div>
-  </section>
+    <main>
+      <!-- Accueil -->
+      <section class="view active" id="view-home">
+        <div class="greet" id="greet">Bonsoir 👋</div>
+        <h2 class="sec">🔥 Tendances Audius</h2>
+        <div class="row-cards" id="homeTrend"></div>
+        <h2 class="sec">❤️ Tes favoris</h2>
+        <div class="row-cards" id="homeFavs"></div>
+      </section>
 
-  <!-- Favoris -->
-  <section class="tab" id="tab-favs">
-    <div class="card">
-      <h2>❤️ Mes favoris <span class="pill" id="favCount">0</span></h2>
-      <p class="note" style="margin-bottom:12px">Stockés dans ton navigateur (localStorage).</p>
-      <div class="track-grid" id="favGrid"></div>
-    </div>
-  </section>
+      <!-- Recherche -->
+      <section class="view" id="view-search">
+        <h2 class="sec">Résultats</h2>
+        <div class="grid-cards" id="results"><div class="empty">Tape un artiste ou un titre dans la barre en haut.</div></div>
+      </section>
 
-  <!-- Fichiers locaux -->
-  <section class="tab" id="tab-files">
-    <div class="card">
-      <h2>📁 Mes fichiers audio</h2>
-      <p class="note" style="margin-bottom:12px">Lecture complète de tes fichiers (mp3, m4a, wav, ogg, flac…). Rien n'est envoyé nulle part.</p>
-      <div class="row">
-        <button class="act" id="fileBtn">➕ Choisir des fichiers</button>
-        <input type="file" id="fileInput" accept="audio/*" multiple style="display:none">
-      </div>
-    </div>
-    <div class="track-grid" id="fileGrid"></div>
-  </section>
+      <!-- Tendances -->
+      <section class="view" id="view-trending">
+        <h2 class="sec">🔥 Tendances du moment — titres complets, gratuits</h2>
+        <div class="grid-cards" id="trendGrid"><div class="empty">Chargement…</div></div>
+      </section>
 
-  <!-- File d'attente -->
-  <section class="tab" id="tab-queue">
-    <div class="card">
-      <h2>🎶 File d'attente <span class="pill" id="qCount">0</span>
-        <button class="ghost" id="qClearBtn" style="margin-left:auto">Vider</button>
-      </h2>
-      <div id="queueList"></div>
-    </div>
-  </section>
-</main>
+      <!-- Favoris -->
+      <section class="view" id="view-favs">
+        <h2 class="sec">❤️ Mes favoris</h2>
+        <div class="grid-cards" id="favGrid"></div>
+      </section>
 
-<!-- Lecteur -->
-<div id="player">
-  <img id="pArt" src="" alt="" onerror="this.style.visibility='hidden'">
-  <div class="info">
-    <div class="t" id="pTitle">—</div>
-    <div class="a" id="pArtist">—</div>
-  </div>
-  <div class="viz" id="viz"><span></span><span></span><span></span><span></span><span></span></div>
-  <div class="controls">
-    <button id="prevBtn" title="Précédent">⏮</button>
-    <button id="playBtn" title="Lecture / Pause">▶</button>
-    <button id="nextBtn" title="Suivant">⏭</button>
-  </div>
-  <div class="seek">
-    <span id="tCur">0:00</span>
-    <input type="range" id="seekRange" min="0" max="1000" value="0">
-    <span id="tDur">0:00</span>
-  </div>
-  <div class="seek" style="min-width:auto">
-    🔊 <input type="range" id="volRange" min="0" max="100" value="90">
+      <!-- Fichiers -->
+      <section class="view" id="view-files">
+        <h2 class="sec">📁 Mes fichiers audio</h2>
+        <p class="note" style="margin-bottom:16px">Lecture complète de tes fichiers (mp3, m4a, wav, ogg, flac…). Rien ne quitte ton appareil.
+          <button class="cardbtns" style="display:inline-flex; margin-left:8px"><button class="tcardbtn" id="fileBtn" style="background:var(--acc); border:none; color:#fff; border-radius:99px; padding:8px 18px; font-weight:700; cursor:pointer; font-size:.8rem">➕ Choisir des fichiers</button></button>
+          <input type="file" id="fileInput" accept="audio/*" multiple style="display:none">
+        </p>
+        <div class="grid-cards" id="fileGrid"></div>
+      </section>
+
+      <!-- File d'attente -->
+      <section class="view" id="view-queue">
+        <h2 class="sec">🎶 File d'attente <button class="cardbtns" style="display:inline-flex; margin-left:8px"><button id="qClearBtn" style="background:transparent; border:1px solid #3a3a3a; color:var(--muted); border-radius:99px; padding:6px 14px; font-size:.75rem; cursor:pointer">Vider</button></button></h2>
+        <div class="grid-cards" id="queueGrid"></div>
+      </section>
+    </main>
   </div>
 </div>
 
-<footer>
-  OpenTune — fichier unique, 100 % frontend. Musique via l'API publique <b>Audius</b> (titres complets mis en ligne par les artistes) · extraits 30 s via iTunes (Apple).<br>
-  Espace = lecture/pause. Aucun compte, aucune clé, aucune donnée personnelle.
-</footer>
+<!-- Lecteur -->
+<div id="player">
+  <div class="np">
+    <img id="pArt" src="" alt="" onerror="this.style.visibility='hidden'">
+    <div style="min-width:0">
+      <div class="t" id="pTitle">—</div>
+      <div class="a" id="pArtist">—</div>
+    </div>
+  </div>
+  <div class="center">
+    <div class="controls">
+      <button id="prevBtn" title="Précédent">⏮</button>
+      <button id="playBtn" title="Lecture / Pause">▶</button>
+      <button id="nextBtn" title="Suivant">⏭</button>
+    </div>
+    <div class="seek">
+      <span id="tCur">0:00</span>
+      <input type="range" id="seekRange" min="0" max="1000" value="0">
+      <span id="tDur">0:00</span>
+    </div>
+  </div>
+  <div class="right">
+    <div class="viz" id="viz"><span></span><span></span><span></span><span></span><span></span></div>
+    <span>🔊</span>
+    <input type="range" id="volRange" min="0" max="100" value="90">
+  </div>
+</div>
 
 <script>
 "use strict";
@@ -204,20 +234,31 @@ const $ = s => document.querySelector(s);
 const APP = "OpenTune";
 function esc(s){ return String(s ?? "").replace(/[<>&"]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c])); }
 
-/* ================= Onglets ================= */
-document.querySelectorAll("#nav button").forEach(b=>{
+/* ================= Vue / navigation ================= */
+document.querySelectorAll(".snav[data-view]").forEach(b=>{
   b.onclick = ()=>{
-    document.querySelectorAll("#nav button").forEach(x=>x.classList.remove("active"));
-    document.querySelectorAll("section.tab").forEach(x=>x.classList.toggle("active", false));
+    document.querySelectorAll(".snav").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
     b.classList.add("active");
-    $("#tab-"+b.dataset.tab).classList.add("active");
+    $("#view-"+b.dataset.view).classList.add("active");
+    $("#content").scrollTop = 0;
   };
 });
-function switchTab(name){
-  document.querySelectorAll("#nav button").forEach(x=>x.classList.toggle("active", x.dataset.tab===name));
-  document.querySelectorAll("section.tab").forEach(x=>x.classList.remove("active"));
-  $("#tab-"+name).classList.add("active");
+function go(view){
+  const b = document.querySelector(`.snav[data-view="${view}"]`);
+  if(b) b.click();
 }
+
+/* ================= État ================= */
+let queue = [], current = -1;
+let favs = JSON.parse(localStorage.getItem("ot_favs_v1") || "[]");
+let files = JSON.parse(localStorage.getItem("ot_files_v1") || "[]");
+const audio = new Audio();
+audio.volume = 0.9;
+function saveFavs(){ localStorage.setItem("ot_favs_v1", JSON.stringify(favs)); }
+function saveFiles(){ localStorage.setItem("ot_files_v1", JSON.stringify(files)); }
+function favKey(t){ return t.title + "|" + t.artist; }
+function isFav(t){ return favs.some(f=>favKey(f) === favKey(t)); }
 
 /* ================= Audius ================= */
 let audiusHost = null;
@@ -226,41 +267,30 @@ async function initAudius(){
     const r = await fetch("https://api.audius.co");
     const j = await r.json();
     const hosts = j.data || [];
-    if(hosts.length){
-      audiusHost = hosts[Math.floor(Math.random()*Math.min(hosts.length,5))];
-      $("#apiBadge").textContent = "🎧 Audius connecté";
-      $("#apiBadge").classList.add("full");
-      loadTrending();
-      return;
-    }
-  }catch(e){}
-  audiusHost = "https://discoveryprovider.audius.co";
-  $("#apiBadge").textContent = "🎧 Audius (hôte par défaut)";
-  $("#apiBadge").classList.add("full");
+    audiusHost = hosts.length ? hosts[Math.floor(Math.random()*Math.min(hosts.length,5))] : "https://discoveryprovider.audius.co";
+    $("#apiBadge").textContent = "🎧 Audius connecté";
+    $("#apiBadge").classList.add("on");
+  }catch(e){
+    audiusHost = "https://discoveryprovider.audius.co";
+    $("#apiBadge").textContent = "🎧 Audius (hôte par défaut)";
+    $("#apiBadge").classList.add("on");
+  }
   loadTrending();
 }
-
 function mapAudius(t){
   return {
-    id: t.id,
-    title: t.title,
+    id: t.id, title: t.title,
     artist: (t.user && t.user.name) || "Artiste Audius",
     art: (t.artwork && (t.artwork["480x480"] || t.artwork["150x150"] || t.artwork["1000x1000"])) || "",
     src: audiusHost + "/v1/tracks/" + t.id + "/stream?app_name=" + APP,
-    local: false, full: true, duration: t.duration || 0
+    local: false, full: true
   };
 }
 function mapItunes(t){
-  return {
-    id: "it-" + t.trackId,
-    title: t.trackName,
-    artist: t.artistName,
-    art: (t.artworkUrl100||"").replace("100x100","300x300"),
-    src: t.previewUrl,
-    local: false, full: false, duration: 30
-  };
+  return { id:"it-"+t.trackId, title:t.trackName, artist:t.artistName,
+           art:(t.artworkUrl100||"").replace("100x100","300x300"), src:t.previewUrl,
+           local:false, full:false };
 }
-
 async function fetchAudius(path){
   const r = await fetch(audiusHost + path + (path.includes("?") ? "&" : "?") + "app_name=" + APP);
   if(!r.ok) throw new Error("Audius " + r.status);
@@ -272,65 +302,62 @@ let searchResults = [];
 async function doSearch(){
   const term = $("#searchInput").value.trim();
   if(!term) return;
-  $("#results").innerHTML = '<div class="note">Recherche…</div>';
+  $("#results").innerHTML = '<div class="empty">Recherche…</div>';
+  go("search");
   if(audiusHost){
     try{
       const j = await fetchAudius("/v1/tracks/search?query=" + encodeURIComponent(term));
       const tracks = (j.data || []).filter(t=>t.is_streamable !== false).map(mapAudius);
-      if(tracks.length){
-        searchResults = tracks;
-        renderGrid($("#results"), tracks, "search");
-        return;
-      }
+      if(tracks.length){ searchResults = tracks; renderCards($("#results"), tracks, "search"); return; }
     }catch(e){}
   }
   try{
     const r = await fetch("https://itunes.apple.com/search?term=" + encodeURIComponent(term) + "&media=music&limit=30");
     const j = await r.json();
-    const tracks = (j.results || []).filter(t=>t.previewUrl).map(mapItunes);
-    searchResults = tracks;
-    renderGrid($("#results"), tracks, "search");
-    if(!tracks.length) $("#results").innerHTML = '<div class="note">Aucun résultat.</div>';
+    searchResults = (j.results || []).filter(t=>t.previewUrl).map(mapItunes);
+    if(searchResults.length) renderCards($("#results"), searchResults, "search");
+    else $("#results").innerHTML = '<div class="empty">Aucun résultat.</div>';
   }catch(e){
-    $("#results").innerHTML = '<div class="note">Erreur : ' + esc(e.message) + '</div>';
+    $("#results").innerHTML = '<div class="empty">Erreur : ' + esc(e.message) + '</div>';
   }
 }
-$("#searchBtn").onclick = doSearch;
 $("#searchInput").addEventListener("keydown", e=>{ if(e.key === "Enter") doSearch(); });
 
 /* ================= Tendances ================= */
+let trend = [];
 async function loadTrending(){
-  $("#trendGrid").innerHTML = '<div class="note">Chargement des tendances…</div>';
   try{
     const j = await fetchAudius("/v1/tracks/trending?limit=30");
-    const tracks = (j.data || []).map(mapAudius);
-    renderGrid($("#trendGrid"), tracks, "trending");
+    trend = (j.data || []).map(mapAudius);
+    renderCards($("#trendGrid"), trend, "trending");
+    renderCards($("#homeTrend"), trend.slice(0,12), "trending");
   }catch(e){
-    $("#trendGrid").innerHTML = '<div class="note">Audius indisponible pour le moment : ' + esc(e.message) + '</div>';
+    $("#trendGrid").innerHTML = '<div class="empty">Audius indisponible : ' + esc(e.message) + '</div>';
   }
 }
 
 /* ================= Cartes ================= */
-function renderGrid(el, tracks, ctx){
-  el.innerHTML = tracks.map((t,i)=>trackCard(t, ctx, i)).join("");
+function renderCards(el, tracks, ctx){
+  if(!tracks.length){ el.innerHTML = '<div class="empty">Rien ici pour le moment.</div>'; return; }
+  el.innerHTML = tracks.map((t,i)=>tcard(t, ctx, i)).join("");
 }
-function trackCard(t, ctx, idx){
+function tcard(t, ctx, idx){
   const faved = isFav(t);
-  return `<div class="track" data-ctx="${ctx}" data-idx="${idx}">
+  return `<div class="tcard" data-ctx="${ctx}" data-idx="${idx}">
     <img src="${esc(t.art)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+    <button class="playfab" onclick='playFrom("${ctx}", ${idx}); event.stopPropagation()'>▶</button>
     <div class="t">${esc(t.title)}</div>
     <div class="a">${esc(t.artist)}</div>
-    <span class="pill ${t.full ? "full" : ""}" style="align-self:flex-start">${t.local ? "📁 local" : t.full ? "🎧 complet" : "extrait 30 s"}</span>
-    <div class="actions">
-      <button class="mini" onclick='playFrom("${ctx}", ${idx})'>▶</button>
-      <button class="mini ghosted ${faved ? "faved" : ""}" onclick='toggleFav("${ctx}", ${idx})' title="Favori">♥</button>
-      <button class="mini ghosted" onclick='addQueue("${ctx}", ${idx})' title="Ajouter à la file">＋</button>
+    <span class="tag ${t.full ? "full" : ""}">${t.local ? "📁 local" : t.full ? "🎧 complet" : "extrait 30 s"}</span>
+    <div class="cardbtns">
+      <button class="${faved ? "faved" : ""}" onclick='toggleFav("${ctx}", ${idx})'>♥ Favori</button>
+      <button onclick='addQueue("${ctx}", ${idx})'>＋ File</button>
     </div>
   </div>`;
 }
 function getStore(ctx){
   if(ctx === "search") return searchResults;
-  if(ctx === "trending") return window._trend || [];
+  if(ctx === "trending") return trend;
   if(ctx === "favs") return favs;
   if(ctx === "files") return files;
   return queue;
@@ -348,7 +375,6 @@ window.addQueue = (ctx, idx)=>{
   if(!t) return;
   queue.push({...t});
   renderQueue();
-  switchTab("queue");
 };
 window.toggleFav = (ctx, idx)=>{
   const t = getStore(ctx)[idx];
@@ -356,17 +382,14 @@ window.toggleFav = (ctx, idx)=>{
   const k = favKey(t);
   const i = favs.findIndex(f=>favKey(f) === k);
   if(i >= 0) favs.splice(i,1); else favs.push({...t});
-  saveFavs(); renderFavs();
-  document.querySelectorAll(".track").forEach(card=>{
-    const c = getStore(card.dataset.ctx);
-    const item = c && c[card.dataset.idx];
-    if(item) card.querySelector(".mini.ghosted").classList.toggle("faved", isFav(item));
-  });
+  saveFavs(); renderFavs(); renderHome();
 };
+function renderHome(){
+  renderCards($("#homeFavs"), favs.slice(0,12), "favs");
+  $("#favCount").textContent = favs.length;
+}
 
 /* ================= Fichiers locaux ================= */
-let files = JSON.parse(localStorage.getItem("ot_files_v1") || "[]");
-function saveFiles(){ localStorage.setItem("ot_files_v1", JSON.stringify(files)); }
 $("#fileBtn").onclick = ()=>$("#fileInput").click();
 $("#fileInput").onchange = e=>{
   for(const f of e.target.files){
@@ -376,37 +399,24 @@ $("#fileInput").onchange = e=>{
   saveFiles(); renderFiles();
   e.target.value = "";
 };
-function renderFiles(){
-  renderGrid($("#fileGrid"), files, "files");
-  if(!files.length) $("#fileGrid").innerHTML = '<div class="note">Aucun fichier. Clique « Choisir des fichiers ».</div>';
-}
+function renderFiles(){ renderCards($("#fileGrid"), files, "files"); }
 
 /* ================= Favoris ================= */
-let favs = JSON.parse(localStorage.getItem("ot_favs_v1") || "[]");
-function saveFavs(){ localStorage.setItem("ot_favs_v1", JSON.stringify(favs)); }
-function favKey(t){ return t.title + "|" + t.artist; }
-function isFav(t){ return favs.some(f=>favKey(f) === favKey(t)); }
-function renderFavs(){
-  $("#favCount").textContent = favs.length;
-  if(favs.length) renderGrid($("#favGrid"), favs, "favs");
-  else $("#favGrid").innerHTML = '<div class="note">Aucun favori. Clique le ♥ sur un titre.</div>';
-}
+function renderFavs(){ renderCards($("#favGrid"), favs, "favs"); $("#favCount").textContent = favs.length; }
 
 /* ================= File d'attente ================= */
-let queue = [];
-let current = -1;
 function renderQueue(){
   $("#qCount").textContent = queue.length;
-  $("#queueList").innerHTML = queue.length ? queue.map((t,i)=>`
-    <div class="card" style="display:flex; align-items:center; gap:12px; padding:12px 14px; ${i === current ? "border-color:var(--acc)" : ""}">
-      <span class="note" style="min-width:22px">${i+1}</span>
-      <div style="flex:1; min-width:0">
-        <b style="font-size:.88rem">${esc(t.title)}</b>
-        <div class="note">${esc(t.artist)} · ${t.local ? "📁 local" : t.full ? "🎧 complet" : "extrait 30 s"}</div>
-      </div>
-      <button class="mini" onclick='playIndex(${i})'>▶</button>
-      <button class="mini ghosted" onclick='removeQueue(${i})'>✕</button>
-    </div>`).join("") : '<div class="note">File vide. Ajoute des titres avec ＋ ou ▶.</div>';
+  if(queue.length){
+    $("#queueGrid").innerHTML = queue.map((t,i)=>`
+      <div class="tcard" style="${i === current ? "outline:2px solid var(--acc)" : ""}">
+        <img src="${esc(t.art)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+        <button class="playfab" style="opacity:1; transform:none" onclick='playIndex(${i})'>▶</button>
+        <div class="t">${i+1}. ${esc(t.title)}</div>
+        <div class="a">${esc(t.artist)}</div>
+        <div class="cardbtns"><button onclick='removeQueue(${i})'>✕ Retirer</button></div>
+      </div>`).join("");
+  } else $("#queueGrid").innerHTML = '<div class="empty">File vide. Ajoute des titres avec « ＋ File » ou ▶.</div>';
 }
 window.removeQueue = i=>{
   if(i === current) audio.pause();
@@ -421,8 +431,6 @@ window.removeQueue = i=>{
 $("#qClearBtn").onclick = ()=>{ audio.pause(); queue = []; current = -1; stopAll(); renderQueue(); };
 
 /* ================= Lecture ================= */
-const audio = new Audio();
-audio.volume = 0.9;
 function fmt(s){
   if(!isFinite(s)) return "0:00";
   const m = Math.floor(s/60), sec = Math.floor(s%60);
@@ -475,6 +483,9 @@ document.addEventListener("keydown", e=>{
 });
 
 /* ================= Init ================= */
+const h = new Date().getHours();
+$("#greet").textContent = h < 6 ? "Bonne nuit 🌙" : h < 12 ? "Bonjour ☀️" : h < 18 ? "Bon après-midi 🌤" : "Bonsoir 👋";
+renderHome();
 renderFavs();
 renderFiles();
 renderQueue();
