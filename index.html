@@ -1,495 +1,329 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OpenTune — Musique</title>
-<style>
-  :root{
-    --bg:#121212; --sidebar:#000; --card:#181818; --card-hover:#282828;
-    --txt:#fff; --muted:#b3b3b3; --acc:#1db954; --err:#e74c3c;
-  }
-  *{box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',system-ui,sans-serif;}
-  body{background:var(--bg); color:var(--txt); height:100vh; overflow:hidden;}
-  a{color:var(--muted);}
-  ::-webkit-scrollbar{width:10px; height:10px;}
-  ::-webkit-scrollbar-thumb{background:#3e3e3e; border-radius:5px;}
-  ::-webkit-scrollbar-track{background:transparent;}
 
-  .shell{display:flex; height:100vh;}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width">
+  <title>OpenTune — Musique</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css"
+    crossorigin="anonymous">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="icon" href="./assets/favicon.png">
+  <script src="./dropdown.js" defer></script>
 
-  /* ---------- Sidebar ---------- */
-  aside{
-    width:230px; min-width:230px; background:var(--sidebar); padding:16px 10px;
-    display:flex; flex-direction:column; gap:6px; overflow-y:auto;
-  }
-  .logo{display:flex; align-items:center; gap:10px; padding:10px 12px 18px; font-size:1.25rem; font-weight:800; letter-spacing:-.02em;}
-  .logo .dot{width:32px; height:32px; border-radius:50%; background:var(--acc); display:flex; align-items:center; justify-content:center; font-size:1rem;}
-  .snav{
-    display:flex; align-items:center; gap:16px; padding:10px 12px; border-radius:8px;
-    color:var(--muted); cursor:pointer; font-size:.92rem; font-weight:600; border:none; background:transparent; width:100%; text-align:left;
-  }
-  .snav:hover{color:var(--txt);}
-  .snav.active{color:var(--txt);}
-  .snav .ic{font-size:1.15rem; width:22px; text-align:center;}
-  .lib{border-top:1px solid #232323; margin-top:10px; padding-top:12px;}
-  .lib .title{color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; padding:0 12px 6px;}
-  .snav .count{margin-left:auto; font-size:.7rem; color:#7a7a7a;}
-
-  /* ---------- Contenu ---------- */
-  .content{flex:1; overflow-y:auto; position:relative; background:linear-gradient(#1f1f1f, var(--bg) 240px);}
-  .topbar{
-    position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:14px;
-    padding:14px 24px; background:#121212cc; backdrop-filter:blur(12px);
-  }
-  .searchbox{display:flex; align-items:center; gap:8px; background:#242424; border-radius:99px; padding:9px 18px; flex:1; max-width:480px;}
-  .searchbox input{
-    flex:1; background:transparent; border:none; color:var(--txt); font-size:.9rem; outline:none;
-  }
-  .searchbox input::placeholder{color:#8a8a8a;}
-  .topbar .badge{font-size:.7rem; color:var(--muted); border:1px solid #333; border-radius:99px; padding:3px 10px; margin-left:auto; white-space:nowrap;}
-  .topbar .badge.on{color:var(--acc); border-color:var(--acc);}
-
-  main{padding:8px 24px 40px;}
-  .view{display:none;} .view.active{display:block;}
-  .greet{font-size:1.9rem; font-weight:800; margin:14px 0 20px; letter-spacing:-.02em;}
-  h2.sec{font-size:1.25rem; font-weight:700; margin:26px 0 14px; letter-spacing:-.01em;}
-  .row-cards{display:flex; gap:16px; overflow-x:auto; padding-bottom:8px;}
-  .row-cards .tcard{min-width:170px; max-width:170px;}
-  .grid-cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:16px;}
-
-  .tcard{
-    background:var(--card); border-radius:10px; padding:14px; position:relative;
-    transition:background .2s; cursor:pointer;
-  }
-  .tcard:hover{background:var(--card-hover);}
-  .tcard img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; background:#333; display:block;}
-  .tcard .t{font-weight:700; font-size:.9rem; margin-top:10px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
-  .tcard .a{color:var(--muted); font-size:.78rem; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .tcard .tag{font-size:.64rem; color:var(--muted); background:#2a2a2a; border-radius:99px; padding:2px 8px; display:inline-block; margin-top:8px;}
-  .tcard .tag.full{color:#fff; background:var(--acc);}
-  .playfab{
-    position:absolute; right:16px; bottom:74px; width:44px; height:44px; border-radius:50%;
-    background:var(--acc); color:#fff; border:none; font-size:1.05rem; cursor:pointer;
-    opacity:0; transform:translateY(8px); transition:.2s; box-shadow:0 8px 16px #0009;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .tcard:hover .playfab{opacity:1; transform:translateY(0);}
-  .playfab:hover{transform:scale(1.06) !important;}
-  .cardbtns{display:flex; gap:6px; margin-top:10px;}
-  .cardbtns button{
-    flex:1; background:transparent; border:1px solid #3a3a3a; color:var(--muted);
-    border-radius:99px; padding:6px 4px; font-size:.72rem; cursor:pointer;
-  }
-  .cardbtns button:hover{color:var(--txt); border-color:#666;}
-  .cardbtns button.faved{color:var(--acc); border-color:var(--acc);}
-  .empty{color:var(--muted); font-size:.85rem; padding:20px 0;}
-  .note{color:var(--muted); font-size:.82rem; line-height:1.55;}
-
-  /* ---------- Player ---------- */
-  #player{
-    position:fixed; left:0; right:0; bottom:0; height:84px; z-index:30;
-    background:#181818; border-top:1px solid #282828;
-    display:flex; align-items:center; padding:0 16px; gap:14px;
-  }
-  #player .np{display:flex; align-items:center; gap:12px; width:260px; min-width:180px;}
-  #player .np img{width:52px; height:52px; border-radius:6px; object-fit:cover; background:#333;}
-  #player .np .t{font-size:.85rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  #player .np .a{font-size:.72rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  #player .center{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:160px;}
-  .controls{display:flex; align-items:center; gap:18px;}
-  .controls button{
-    background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:1rem;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .controls button:hover{color:var(--txt);}
-  #playBtn{
-    width:38px; height:38px; border-radius:50%; background:var(--txt); color:#000;
-    font-size:1rem; border:none;
-  }
-  #playBtn:hover{transform:scale(1.05);}
-  .seek{display:flex; align-items:center; gap:8px; width:100%; max-width:560px; font-size:.7rem; color:var(--muted);}
-  input[type=range]{flex:1; -webkit-appearance:none; appearance:none; height:4px; border-radius:2px; background:#4d4d4d; cursor:pointer;}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:12px; height:12px; border-radius:50%; background:var(--txt); opacity:0; transition:.15s;}
-  input[type=range]:hover::-webkit-slider-thumb{opacity:1;}
-  input[type=range]:hover{background:var(--acc);}
-  #volRange{width:100px; max-width:100px;}
-  #player .right{display:flex; align-items:center; gap:8px; width:200px; justify-content:flex-end; color:var(--muted); font-size:.9rem;}
-  .viz{display:flex; gap:3px; align-items:flex-end; height:20px;}
-  .viz span{width:3px; background:var(--acc); border-radius:2px; height:4px;}
-  .viz.on span{animation:bounce .9s ease-in-out infinite;}
-  .viz span:nth-child(2){animation-delay:.15s} .viz span:nth-child(3){animation-delay:.3s}
-  .viz span:nth-child(4){animation-delay:.45s} .viz span:nth-child(5){animation-delay:.6s}
-  @keyframes bounce{0%,100%{height:4px}50%{height:20px}}
-
-  @media (max-width:800px){
-    aside{display:none;}
-    #player .np{width:auto;} #player .right{display:none;}
-  }
-</style>
 </head>
+
+
 <body>
 
-<div class="shell">
-  <aside>
-    <div class="logo"><span class="dot">🎵</span> OpenTune</div>
-    <button class="snav active" data-view="home"><span class="ic">🏠</span> Accueil</button>
-    <button class="snav" data-view="search"><span class="ic">🔍</span> Rechercher</button>
-    <button class="snav" data-view="trending"><span class="ic">🔥</span> Tendances</button>
-    <div class="lib">
-      <div class="title">Bibliothèque</div>
-      <button class="snav" data-view="favs"><span class="ic">❤️</span> Favoris <span class="count" id="favCount">0</span></button>
-      <button class="snav" data-view="files"><span class="ic">📁</span> Mes fichiers</button>
-      <button class="snav" data-view="queue"><span class="ic">🎶</span> File d'attente <span class="count" id="qCount">0</span></button>
-    </div>
-  </aside>
+  <div id="app" class="d-flex flex-column">
 
-  <div class="content" id="content">
-    <div class="topbar">
-      <div class="searchbox">
-        <span>🔍</span>
-        <input type="text" id="searchInput" placeholder="Que veux-tu écouter ?">
-      </div>
-      <span class="badge" id="apiBadge">Connexion à Audius…</span>
-    </div>
+    <div id="principal" class="d-flex">
 
-    <main>
-      <!-- Accueil -->
-      <section class="view active" id="view-home">
-        <div class="greet" id="greet">Bonsoir 👋</div>
-        <h2 class="sec">🔥 Tendances Audius</h2>
-        <div class="row-cards" id="homeTrend"></div>
-        <h2 class="sec">❤️ Tes favoris</h2>
-        <div class="row-cards" id="homeFavs"></div>
-      </section>
 
-      <!-- Recherche -->
-      <section class="view" id="view-search">
-        <h2 class="sec">Résultats</h2>
-        <div class="grid-cards" id="results"><div class="empty">Tape un artiste ou un titre dans la barre en haut.</div></div>
-      </section>
+      <nav id="latNav" class="w-100 pt-4 d-flex flex-column">
 
-      <!-- Tendances -->
-      <section class="view" id="view-trending">
-        <h2 class="sec">🔥 Tendances du moment — titres complets, gratuits</h2>
-        <div class="grid-cards" id="trendGrid"><div class="empty">Chargement…</div></div>
-      </section>
+        <!-- Start of logo -->
 
-      <!-- Favoris -->
-      <section class="view" id="view-favs">
-        <h2 class="sec">❤️ Mes favoris</h2>
-        <div class="grid-cards" id="favGrid"></div>
-      </section>
+        <a href="#" class="d-flex px-4 align-items-center">
+          <span style="width:40px; height:40px; border-radius:50%; background:#1db954; display:inline-flex; align-items:center; justify-content:center; font-size:1.2rem;">🎵</span>
+          <span class="fw-semibold ms-2" style="font-size: 1.5em;">OpenTune</span>
+        </a>
 
-      <!-- Fichiers -->
-      <section class="view" id="view-files">
-        <h2 class="sec">📁 Mes fichiers audio</h2>
-        <p class="note" style="margin-bottom:16px">Lecture complète de tes fichiers (mp3, m4a, wav, ogg, flac…). Rien ne quitte ton appareil.
-          <button class="cardbtns" style="display:inline-flex; margin-left:8px"><button class="tcardbtn" id="fileBtn" style="background:var(--acc); border:none; color:#fff; border-radius:99px; padding:8px 18px; font-weight:700; cursor:pointer; font-size:.8rem">➕ Choisir des fichiers</button></button>
+        <!-- End of logo -->
+
+
+
+        <!-- Start of side bar-->
+
+        <ul class="nav flex-column px-2 my-4">
+          <li class="nav-item">
+            <a href="#main" class="nav-link ativo"><svg role="img" height="24" width="24" viewBox="0 0 24 24">
+                <path
+                  d="M13.5 1.515a3 3 0 00-3 0L3 5.845a2 2 0 00-1 1.732V21a1 1 0 001 1h6a1 1 0 001-1v-6h4v6a1 1 0 001 1h6a1 1 0 001-1V7.577a2 2 0 00-1-1.732l-7.5-4.33z">
+                </path>
+              </svg> Accueil</a>
+          </li>
+          <li class="nav-item">
+            <a href="#" id="navSearch" class="nav-link"><svg role="img" height="24" width="24" viewBox="0 0 24 24">
+                <path
+                  d="M10.533 1.279c-5.18 0-9.407 4.14-9.407 9.279s4.226 9.279 9.407 9.279c2.234 0 4.29-.77 5.907-2.058l4.353 4.353a1 1 0 101.414-1.414l-4.344-4.344a9.157 9.157 0 002.077-5.816c0-5.14-4.226-9.28-9.407-9.28zm-7.407 9.279c0-4.006 3.302-7.28 7.407-7.28s7.407 3.274 7.407 7.28-3.302 7.279-7.407 7.279-7.407-3.273-7.407-7.28z">
+                </path>
+              </svg> Rechercher</a>
+          </li>
+          <li class="nav-item">
+            <a href="#secFavs" class="nav-link"><svg role="img" height="24" width="24" viewBox="0 0 24 24">
+                <path
+                  d="M14.5 2.134a1 1 0 011 0l6 3.464a1 1 0 01.5.866V21a1 1 0 01-1 1h-6a1 1 0 01-1-1V3a1 1 0 01.5-.866zM16 4.732V20h4V7.041l-4-2.309zM3 22a1 1 0 01-1-1V3a1 1 0 012 0v18a1 1 0 01-1 1zm6 0a1 1 0 01-1-1V3a1 1 0 012 0v18a1 1 0 01-1 1z">
+                </path>
+              </svg> Bibliothèque</a>
+          </li>
+        </ul>
+
+        <div id="underList">
+          <button id="fileBtnTop">
+            <div class="plus_bttn">
+              <svg role="img" height="12" width="12" aria-hidden="true" viewBox="0 0 16 16">
+                <path
+                  d="M15.25 8a.75.75 0 01-.75.75H8.75v5.75a.75.75 0 01-1.5 0V8.75H1.5a.75.75 0 010-1.5h5.75V1.5a.75.75 0 011.5 0v5.75h5.75a.75.75 0 01.75.75z">
+                </path>
+              </svg>
+            </div>
+            Ajouter mes fichiers
+          </button>
+
           <input type="file" id="fileInput" accept="audio/*" multiple style="display:none">
-        </p>
-        <div class="grid-cards" id="fileGrid"></div>
-      </section>
+        </div>
 
-      <!-- File d'attente -->
-      <section class="view" id="view-queue">
-        <h2 class="sec">🎶 File d'attente <button class="cardbtns" style="display:inline-flex; margin-left:8px"><button id="qClearBtn" style="background:transparent; border:1px solid #3a3a3a; color:var(--muted); border-radius:99px; padding:6px 14px; font-size:.75rem; cursor:pointer">Vider</button></button></h2>
-        <div class="grid-cards" id="queueGrid"></div>
-      </section>
-    </main>
-  </div>
-</div>
+      </nav>
 
-<!-- Lecteur -->
-<div id="player">
-  <div class="np">
-    <img id="pArt" src="" alt="" onerror="this.style.visibility='hidden'">
-    <div style="min-width:0">
-      <div class="t" id="pTitle">—</div>
-      <div class="a" id="pArtist">—</div>
+      <!-- End of side bar-->
+
+
+      <!-- Main Content -->
+      <div id="feed" class="w-100">
+
+        <!-- menu superior do conteudo -->
+        <nav id="topNav" class="d-flex justify-content-between align-items-center px-4 py-2">
+
+          <!-- Start of arrows -->
+
+          <div id="arrowMenu">
+            <button><svg role="img" height="24" width="24" viewBox="0 0 24 24">
+                <path
+                  d="M15.957 2.793a1 1 0 010 1.414L8.164 12l7.793 7.793a1 1 0 11-1.414 1.414L5.336 12l9.207-9.207a1 1 0 011.414 0z">
+                </path>
+              </svg></button>
+            <button><svg role="img" height="24" width="24" viewBox="0 0 24 24">
+                <path
+                  d="M8.043 2.793a1 1 0 000 1.414L15.836 12l-7.793 7.793a1 1 0 101.414 1.414L18.664 12 9.457 2.793a1 1 0 00-1.414 0z">
+                </path>
+              </svg></button>
+          </div>
+
+          <!-- End of arrows-->
+
+          <div class="d-flex align-items-center flex-grow-1 justify-content-center px-3">
+            <div class="searchbox d-flex align-items-center">
+              <svg role="img" height="18" width="18" viewBox="0 0 24 24" fill="#8a8a8a">
+                <path
+                  d="M10.533 1.279c-5.18 0-9.407 4.14-9.407 9.279s4.226 9.279 9.407 9.279c2.234 0 4.29-.77 5.907-2.058l4.353 4.353a1 1 0 101.414-1.414l-4.344-4.344a9.157 9.157 0 002.077-5.816c0-5.14-4.226-9.28-9.407-9.28zm-7.407 9.279c0-4.006 3.302-7.28 7.407-7.28s7.407 3.274 7.407 7.28-3.302 7.279-7.407 7.279-7.407-3.273-7.407-7.28z">
+                </path>
+              </svg>
+              <input type="text" id="searchInput" placeholder="Artiste, titre… (Entrée pour chercher)">
+            </div>
+          </div>
+
+          <div id="btnTopNav" class="d-flex">
+
+            <!-- Start of user profile -->
+            <div class="dropdown ms-3" id="user_bttn">
+              <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
+                data-bs-toggle="dropdown" aria-expanded="true">
+                <div class="imgUsuario bg-secondary">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                    viewBox="0 0 16 16">
+                    <path
+                      d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z" />
+                  </svg>
+                </div>
+                Invité
+              </button>
+              <div class="dropdownMenuButton1-dropContent">
+                <a href="https://audius.co" target="_blank" rel="noopener">À propos d'Audius</a>
+                <a href="https://github.com/0xtaufeeq/Spotify-Clone" target="_blank" rel="noopener">Template (MIT)</a>
+              </div>
+
+            </div>
+          </div>
+        </nav>
+
+        <!-- End of user profile -->
+
+
+        <!-- feed do conteudo principal -->
+        <main id="main" class="p-4">
+
+          <!-- seção inicial (header) -->
+          <section id="feedHeader">
+
+            <!-- start of greeting -->
+            <h2 class="fw-bold" id="greeting">Bonsoir</h2>
+            <!-- end of greeting -->
+
+            <!-- recent playlists -->
+            <ul id="playlistsRecentes" class="mb-5"></ul>
+          </section>
+
+
+          <!-- Tendances Audius -->
+          <section class="feedPlaylist">
+            <h4 class="mb-3"><a href="#"><b>🔥 Tendances Audius — titres complets</b></a></h4>
+          <a class="see-all" href="https://audius.co" target="_blank" rel="noopener">VOIR PLUS</a>
+            <br>
+            <br>
+            <ul class="playlists" id="trendList">
+              <li><img src="./assets/7.jpeg"><span>Chargement des tendances…</span><p><br>Connexion à Audius</p></li>
+            </ul>
+          </section>
+
+          <!--favoris-->
+          <section class="feedPlaylist" id="secFavs">
+            <h4 class="mb-3"><a href="#">❤️ Tes favoris</a></h4>
+            <a class="see-all" href="#">—</a>
+            <br>
+            <br>
+            <ul class="playlists" id="favList">
+              <li><img src="./assets/8.jpeg"><span>Aucun favori</span><p><br>Clique ♥ sur un titre</p></li>
+            </ul>
+          </section>
+
+          <!--recherche-->
+          <section class="feedPlaylist" id="secSearch" style="display:none">
+            <h4 class="mb-3"><a href="#">🔍 Résultats de recherche</a></h4>
+            <a class="see-all" href="#">—</a>
+            <br>
+            <br>
+            <ul class="playlists" id="searchList"></ul>
+          </section>
+
+          <!--fichiers locaux-->
+          <section class="feedPlaylist" id="secFiles">
+            <h4 class="mb-3"><a href="#">📁 Mes fichiers audio</a></h4>
+            <a class="see-all" href="#">lecture intégrale</a>
+            <br>
+            <br>
+            <ul class="playlists" id="fileList">
+              <li><img src="./assets/9.jpeg"><span>Aucun fichier</span><p><br>« Ajouter mes fichiers » dans la barre latérale</p></li>
+            </ul>
+          </section>
+
+          <!--file d'attente-->
+          <section class="feedPlaylist" id="secQueue">
+            <h4 class="mb-3"><a href="#">🎶 File d'attente</a></h4>
+            <a class="see-all" href="#" id="qClearBtn">VIDER</a>
+            <br>
+            <br>
+            <ul class="playlists" id="queueList">
+              <li><img src="./assets/10.jpeg"><span>File vide</span><p><br>Ajoute des titres avec ▶ ou le bouton +</p></li>
+            </ul>
+          </section>
+
+          <p class="note-credit">Musique : API publique Audius (titres complets, artistes indépendants) · Interface inspirée du template
+            <a href="https://github.com/0xtaufeeq/Spotify-Clone" target="_blank" rel="noopener">0xtaufeeq/Spotify-Clone</a> (licence MIT, voir LICENSE-TEMPLATE) · Extraits 30 s : iTunes (Apple).</p>
+
+        </main>
+      </div>
+    </div>
+
+    <!-- Bottom player -->
+    <div id="footer">
+      <div id="audioBar" class="p-3 d-flex justify-content-between">
+
+        <div id="musicaPlay">
+          <span style="color:#8a8a8a; font-size:.8rem;">—</span>
+        </div>
+
+        <div id="botomIcon">
+          <ul class="nav flex-row px-2 my-4">
+            <li class="nav-item">
+              <a href="#main" class="nav-link ativo d-flex flex-column align-items-center"><svg role="img" height="20"
+                  width="20" fill="white" viewBox="0 0 24 24">
+                  <path
+                    d="M13.5 1.515a3 3 0 00-3 0L3 5.845a2 2 0 00-1 1.732V21a1 1 0 001 1h6a1 1 0 001-1v-6h4v6a1 1 0 001 1h6a1 1 0 001-1V7.577a2 2 0 00-1-1.732l-7.5-4.33z">
+                  </path>
+                </svg>Accueil</a>
+            </li>
+            <li class="nav-item">
+              <a href="#" id="botomSearch" class="nav-link d-flex flex-column align-items-center"><svg role="img" height="20" width="20"
+                  fill="white" viewBox="0 0 24 24">
+                  <path
+                    d="M10.533 1.279c-5.18 0-9.407 4.14-9.407 9.279s4.226 9.279 9.407 9.279c2.234 0 4.29-.77 5.907-2.058l4.353 4.353a1 1 0 101.414-1.414l-4.344-4.344a9.157 9.157 0 002.077-5.816c0-5.14-4.226-9.28-9.407-9.28zm-7.407 9.279c0-4.006 3.302-7.28 7.407-7.28s7.407 3.274 7.407 7.28-3.302 7.279-7.407 7.279-7.407-3.273-7.407-7.28z">
+                  </path>
+                </svg>Recherche</a>
+            </li>
+            <li class="nav-item">
+              <a href="#secFavs" class="nav-link d-flex flex-column align-items-center"><svg role="img" height="20" width="20"
+                  fill="white" viewBox="0 0 24 24">
+                  <path
+                    d="M14.5 2.134a1 1 0 011 0l6 3.464a1 1 0 01.5.866V21a1 1 0 01-1 1h-6a1 1 0 01-1-1V3a1 1 0 01.5-.866zM16 4.732V20h4V7.041l-4-2.309zM3 22a1 1 0 01-1-1V3a1 1 0 012 0v18a1 1 0 01-1 1zm6 0a1 1 0 01-1-1V3a1 1 0 012 0v18a1 1 0 01-1 1z">
+                  </path>
+                </svg>Bibliothèque</a>
+            </li>
+          </ul>
+        </div>
+
+        <div id="caixaCentral" class="d-flex flex-column align-items-center">
+
+          <div id="caixaSetas" class="d-flex align-items-center">
+            <button type="button" class="icones aleatorio"><svg onClick="enabledisable(this)" role="img" height="16"
+                width="16" viewBox="0 0 16 16">
+                <path
+                  d="M13.151.922a.75.75 0 10-1.06 1.06L13.109 3H11.16a3.75 3.75 0 00-2.873 1.34l-6.173 7.356A2.25 2.25 0 01.39 12.5H0V14h.391a3.75 3.75 0 002.873-1.34l6.173-7.356a2.25 2.25 0 011.724-.804h1.947l-1.017 1.018a.75.75 0 001.06 1.06L15.98 3.75 13.15.922zM.391 3.5H0V2h.391c1.109 0 2.16.49 2.873 1.34L4.89 5.277l-.979 1.167-1.796-2.14A2.25 2.25 0 00.39 3.5z">
+                </path>
+                <path
+                  d="M7.5 10.723l.98-1.167.957 1.14a2.25 2.25 0 001.724.804h1.947l-1.017-1.018a.75.75 0 111.06-1.06l2.829 2.828-2.829 2.828a.75.75 0 11-1.06-1.06L13.109 13H11.16a3.75 3.75 0 01-2.873-1.34l-.787-.938z">
+                </path>
+              </svg></button>
+
+            <button type="button" class="icones anterior"><svg role="img" height="16" width="16" viewBox="0 0 16 16">
+                <path
+                  d="M12.7 1a.7.7 0 00-.7.7v5.15L2.05 1.107A.7.7 0 001 1.712v12.575a.7.7 0 001.05.607L12 9.149V14.3a.7.7 0 00.7.7h1.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7h-1.6z">
+                </path>
+              </svg></button>
+
+            <button type="button" class="btn playPause"><svg role="img" height="24" width="24" viewBox="0 0 24 24">
+                <path
+                  d="M7.05 3.606l13.49 7.788a.7.7 0 010 1.212L7.05 20.394A.7.7 0 016 19.788V4.212a.7.7 0 011.05-.606z">
+                </path>
+              </svg></button>
+
+            <button type="button" class="icones proximo"><svg role="img" height="16" width="16" viewBox="0 0 16 16">
+                <path
+                  d="M12.7 1a.7.7 0 00-.7.7v5.15L2.05 1.107A.7.7 0 001 1.712v12.575a.7.7 0 001.05.607L12 9.149V14.3a.7.7 0 00.7.7h1.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7h-1.6z">
+                </path>
+              </svg></button>
+
+            <button type="button" class="icones repetir"><svg onClick="enabledisable(this)" role="img" height="16"
+                width="16" viewBox="0 0 16 16">
+                <path
+                  d="M0 4.75A3.75 3.75 0 013.75 1h8.5A3.75 3.75 0 0116 4.75v5a3.75 3.75 0 01-3.75 3.75H9.81l1.018 1.018a.75.75 0 11-1.06 1.06L6.939 12.75l2.829-2.828a.75.75 0 111.06 1.06L9.811 12h2.439a2.25 2.25 0 002.25-2.25v-5a2.25 2.25 0 00-2.25-2.25h-8.5A2.25 2.25 0 001.5 4.75v5A2.25 2.25 0 003.75 12H5v1.5H3.75A3.75 3.75 0 010 9.75v-5z">
+                </path>
+              </svg></button>
+          </div>
+
+          <div id="barraDeProgresso"><small id="tCur">00:00</small><input type="range" id="seekRange" min="0" max="1000" value="0"><small id="tDur">00:00</small></div>
+        </div>
+
+
+        <div id="configAudio" class="d-flex align-items-center">
+          <div id="volume">
+            <button type="button" class="icones outrosDispositivos"><svg role="presentation" height="16" width="16"
+                aria-label="Volume moyen" id="volume-icon" viewBox="0 0 16 16">
+                <path
+                  d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 6.087a4.502 4.502 0 000-8.474v1.65a2.999 2.999 0 010 5.175v1.649z">
+                </path>
+              </svg></button>
+            <input type="range" id="volRange" min="0" max="100" value="90">
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="center">
-    <div class="controls">
-      <button id="prevBtn" title="Précédent">⏮</button>
-      <button id="playBtn" title="Lecture / Pause">▶</button>
-      <button id="nextBtn" title="Suivant">⏭</button>
-    </div>
-    <div class="seek">
-      <span id="tCur">0:00</span>
-      <input type="range" id="seekRange" min="0" max="1000" value="0">
-      <span id="tDur">0:00</span>
-    </div>
-  </div>
-  <div class="right">
-    <div class="viz" id="viz"><span></span><span></span><span></span><span></span><span></span></div>
-    <span>🔊</span>
-    <input type="range" id="volRange" min="0" max="100" value="90">
-  </div>
-</div>
 
-<script>
-"use strict";
-const $ = s => document.querySelector(s);
-const APP = "OpenTune";
-function esc(s){ return String(s ?? "").replace(/[<>&"]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c])); }
+  <style>
+    #latNav .nav-link, #botomIcon .nav-link { color:#b3b3b3; }
+    #latNav .nav-link:hover, #botomIcon .nav-link:hover { color:#fff; }
+    #latNav .nav-link.ativo, #botomIcon .nav-link.ativo { color:#fff; }
+    .searchbox{ background:#242424; border-radius:99px; padding:8px 16px; gap:8px; max-width:440px; width:100%; }
+    .searchbox input{ background:transparent; border:none; outline:none; color:#fff; font-size:.88rem; width:100%; }
+    .searchbox input::placeholder{ color:#8a8a8a; }
+    .note-credit{ color:#7a7a7a; font-size:.72rem; margin-top:30px; }
+    .note-credit a{ color:#1db954; text-decoration:none; }
+  </style>
 
-/* ================= Vue / navigation ================= */
-document.querySelectorAll(".snav[data-view]").forEach(b=>{
-  b.onclick = ()=>{
-    document.querySelectorAll(".snav").forEach(x=>x.classList.remove("active"));
-    document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active");
-    $("#view-"+b.dataset.view).classList.add("active");
-    $("#content").scrollTop = 0;
-  };
-});
-function go(view){
-  const b = document.querySelector(`.snav[data-view="${view}"]`);
-  if(b) b.click();
-}
-
-/* ================= État ================= */
-let queue = [], current = -1;
-let favs = JSON.parse(localStorage.getItem("ot_favs_v1") || "[]");
-let files = JSON.parse(localStorage.getItem("ot_files_v1") || "[]");
-const audio = new Audio();
-audio.volume = 0.9;
-function saveFavs(){ localStorage.setItem("ot_favs_v1", JSON.stringify(favs)); }
-function saveFiles(){ localStorage.setItem("ot_files_v1", JSON.stringify(files)); }
-function favKey(t){ return t.title + "|" + t.artist; }
-function isFav(t){ return favs.some(f=>favKey(f) === favKey(t)); }
-
-/* ================= Audius ================= */
-let audiusHost = null;
-async function initAudius(){
-  try{
-    const r = await fetch("https://api.audius.co");
-    const j = await r.json();
-    const hosts = j.data || [];
-    audiusHost = hosts.length ? hosts[Math.floor(Math.random()*Math.min(hosts.length,5))] : "https://discoveryprovider.audius.co";
-    $("#apiBadge").textContent = "🎧 Audius connecté";
-    $("#apiBadge").classList.add("on");
-  }catch(e){
-    audiusHost = "https://discoveryprovider.audius.co";
-    $("#apiBadge").textContent = "🎧 Audius (hôte par défaut)";
-    $("#apiBadge").classList.add("on");
-  }
-  loadTrending();
-}
-function mapAudius(t){
-  return {
-    id: t.id, title: t.title,
-    artist: (t.user && t.user.name) || "Artiste Audius",
-    art: (t.artwork && (t.artwork["480x480"] || t.artwork["150x150"] || t.artwork["1000x1000"])) || "",
-    src: audiusHost + "/v1/tracks/" + t.id + "/stream?app_name=" + APP,
-    local: false, full: true
-  };
-}
-function mapItunes(t){
-  return { id:"it-"+t.trackId, title:t.trackName, artist:t.artistName,
-           art:(t.artworkUrl100||"").replace("100x100","300x300"), src:t.previewUrl,
-           local:false, full:false };
-}
-async function fetchAudius(path){
-  const r = await fetch(audiusHost + path + (path.includes("?") ? "&" : "?") + "app_name=" + APP);
-  if(!r.ok) throw new Error("Audius " + r.status);
-  return r.json();
-}
-
-/* ================= Recherche ================= */
-let searchResults = [];
-async function doSearch(){
-  const term = $("#searchInput").value.trim();
-  if(!term) return;
-  $("#results").innerHTML = '<div class="empty">Recherche…</div>';
-  go("search");
-  if(audiusHost){
-    try{
-      const j = await fetchAudius("/v1/tracks/search?query=" + encodeURIComponent(term));
-      const tracks = (j.data || []).filter(t=>t.is_streamable !== false).map(mapAudius);
-      if(tracks.length){ searchResults = tracks; renderCards($("#results"), tracks, "search"); return; }
-    }catch(e){}
-  }
-  try{
-    const r = await fetch("https://itunes.apple.com/search?term=" + encodeURIComponent(term) + "&media=music&limit=30");
-    const j = await r.json();
-    searchResults = (j.results || []).filter(t=>t.previewUrl).map(mapItunes);
-    if(searchResults.length) renderCards($("#results"), searchResults, "search");
-    else $("#results").innerHTML = '<div class="empty">Aucun résultat.</div>';
-  }catch(e){
-    $("#results").innerHTML = '<div class="empty">Erreur : ' + esc(e.message) + '</div>';
-  }
-}
-$("#searchInput").addEventListener("keydown", e=>{ if(e.key === "Enter") doSearch(); });
-
-/* ================= Tendances ================= */
-let trend = [];
-async function loadTrending(){
-  try{
-    const j = await fetchAudius("/v1/tracks/trending?limit=30");
-    trend = (j.data || []).map(mapAudius);
-    renderCards($("#trendGrid"), trend, "trending");
-    renderCards($("#homeTrend"), trend.slice(0,12), "trending");
-  }catch(e){
-    $("#trendGrid").innerHTML = '<div class="empty">Audius indisponible : ' + esc(e.message) + '</div>';
-  }
-}
-
-/* ================= Cartes ================= */
-function renderCards(el, tracks, ctx){
-  if(!tracks.length){ el.innerHTML = '<div class="empty">Rien ici pour le moment.</div>'; return; }
-  el.innerHTML = tracks.map((t,i)=>tcard(t, ctx, i)).join("");
-}
-function tcard(t, ctx, idx){
-  const faved = isFav(t);
-  return `<div class="tcard" data-ctx="${ctx}" data-idx="${idx}">
-    <img src="${esc(t.art)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
-    <button class="playfab" onclick='playFrom("${ctx}", ${idx}); event.stopPropagation()'>▶</button>
-    <div class="t">${esc(t.title)}</div>
-    <div class="a">${esc(t.artist)}</div>
-    <span class="tag ${t.full ? "full" : ""}">${t.local ? "📁 local" : t.full ? "🎧 complet" : "extrait 30 s"}</span>
-    <div class="cardbtns">
-      <button class="${faved ? "faved" : ""}" onclick='toggleFav("${ctx}", ${idx})'>♥ Favori</button>
-      <button onclick='addQueue("${ctx}", ${idx})'>＋ File</button>
-    </div>
-  </div>`;
-}
-function getStore(ctx){
-  if(ctx === "search") return searchResults;
-  if(ctx === "trending") return trend;
-  if(ctx === "favs") return favs;
-  if(ctx === "files") return files;
-  return queue;
-}
-window.playFrom = (ctx, idx)=>{
-  const t = getStore(ctx)[idx];
-  if(!t) return;
-  if(ctx === "queue"){ playIndex(idx); return; }
-  queue.push({...t});
-  playIndex(queue.length - 1);
-  renderQueue();
-};
-window.addQueue = (ctx, idx)=>{
-  const t = getStore(ctx)[idx];
-  if(!t) return;
-  queue.push({...t});
-  renderQueue();
-};
-window.toggleFav = (ctx, idx)=>{
-  const t = getStore(ctx)[idx];
-  if(!t) return;
-  const k = favKey(t);
-  const i = favs.findIndex(f=>favKey(f) === k);
-  if(i >= 0) favs.splice(i,1); else favs.push({...t});
-  saveFavs(); renderFavs(); renderHome();
-};
-function renderHome(){
-  renderCards($("#homeFavs"), favs.slice(0,12), "favs");
-  $("#favCount").textContent = favs.length;
-}
-
-/* ================= Fichiers locaux ================= */
-$("#fileBtn").onclick = ()=>$("#fileInput").click();
-$("#fileInput").onchange = e=>{
-  for(const f of e.target.files){
-    files.push({ id:"f"+Date.now()+Math.random(), title:f.name.replace(/\.[^.]+$/,""), artist:"Fichier local",
-                 art:"", src:URL.createObjectURL(f), local:true, full:true });
-  }
-  saveFiles(); renderFiles();
-  e.target.value = "";
-};
-function renderFiles(){ renderCards($("#fileGrid"), files, "files"); }
-
-/* ================= Favoris ================= */
-function renderFavs(){ renderCards($("#favGrid"), favs, "favs"); $("#favCount").textContent = favs.length; }
-
-/* ================= File d'attente ================= */
-function renderQueue(){
-  $("#qCount").textContent = queue.length;
-  if(queue.length){
-    $("#queueGrid").innerHTML = queue.map((t,i)=>`
-      <div class="tcard" style="${i === current ? "outline:2px solid var(--acc)" : ""}">
-        <img src="${esc(t.art)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
-        <button class="playfab" style="opacity:1; transform:none" onclick='playIndex(${i})'>▶</button>
-        <div class="t">${i+1}. ${esc(t.title)}</div>
-        <div class="a">${esc(t.artist)}</div>
-        <div class="cardbtns"><button onclick='removeQueue(${i})'>✕ Retirer</button></div>
-      </div>`).join("");
-  } else $("#queueGrid").innerHTML = '<div class="empty">File vide. Ajoute des titres avec « ＋ File » ou ▶.</div>';
-}
-window.removeQueue = i=>{
-  if(i === current) audio.pause();
-  queue.splice(i,1);
-  if(i < current) current--;
-  else if(i === current){
-    current = Math.min(current, queue.length-1);
-    if(current >= 0) playIndex(current); else stopAll();
-  }
-  renderQueue();
-};
-$("#qClearBtn").onclick = ()=>{ audio.pause(); queue = []; current = -1; stopAll(); renderQueue(); };
-
-/* ================= Lecture ================= */
-function fmt(s){
-  if(!isFinite(s)) return "0:00";
-  const m = Math.floor(s/60), sec = Math.floor(s%60);
-  return m + ":" + String(sec).padStart(2,"0");
-}
-function playIndex(i){
-  if(i < 0 || i >= queue.length) return;
-  current = i;
-  const t = queue[i];
-  audio.src = t.src;
-  audio.play().catch(()=>{});
-  $("#pTitle").textContent = t.title;
-  $("#pArtist").textContent = t.artist;
-  const art = $("#pArt");
-  if(t.art){ art.src = t.art; art.style.visibility = "visible"; } else art.style.visibility = "hidden";
-  renderQueue();
-}
-function stopAll(){
-  $("#pTitle").textContent = "—"; $("#pArtist").textContent = "—";
-  $("#playBtn").textContent = "▶";
-  $("#viz").classList.remove("on");
-}
-$("#playBtn").onclick = ()=>{
-  if(!audio.src){ if(queue.length) playIndex(0); return; }
-  if(audio.paused) audio.play().catch(()=>{}); else audio.pause();
-};
-$("#nextBtn").onclick = ()=>playIndex((current+1) % Math.max(queue.length,1));
-$("#prevBtn").onclick = ()=>{
-  if(audio.currentTime > 3){ audio.currentTime = 0; return; }
-  playIndex((current-1+queue.length) % Math.max(queue.length,1));
-};
-audio.onplay = ()=>{ $("#playBtn").textContent = "⏸"; $("#viz").classList.add("on"); };
-audio.onpause = ()=>{ $("#playBtn").textContent = "▶"; $("#viz").classList.remove("on"); };
-audio.onended = ()=>{ if(queue.length) playIndex((current+1) % queue.length); };
-audio.ontimeupdate = ()=>{
-  $("#tCur").textContent = fmt(audio.currentTime);
-  if(audio.duration && isFinite(audio.duration)){
-    $("#tDur").textContent = fmt(audio.duration);
-    $("#seekRange").value = Math.round(audio.currentTime / audio.duration * 1000);
-  }
-};
-$("#seekRange").oninput = e=>{
-  if(audio.duration && isFinite(audio.duration)) audio.currentTime = e.target.value / 1000 * audio.duration;
-};
-$("#volRange").oninput = e=>{ audio.volume = e.target.value / 100; };
-document.addEventListener("keydown", e=>{
-  if(e.code === "Space" && !["INPUT","TEXTAREA"].includes(document.activeElement.tagName)){
-    e.preventDefault(); $("#playBtn").click();
-  }
-});
-
-/* ================= Init ================= */
-const h = new Date().getHours();
-$("#greet").textContent = h < 6 ? "Bonne nuit 🌙" : h < 12 ? "Bonjour ☀️" : h < 18 ? "Bon après-midi 🌤" : "Bonsoir 👋";
-renderHome();
-renderFavs();
-renderFiles();
-renderQueue();
-initAudius();
-</script>
+  <script src="app.js"></script>
 </body>
+
 </html>
